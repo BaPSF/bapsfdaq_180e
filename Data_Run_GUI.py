@@ -44,6 +44,7 @@ import matplotlib.patches as patches
 from scipy.linalg import norm
 
 data_running = False
+
 #############################################################################################
 #############################################################################################
 
@@ -118,7 +119,8 @@ class MyMplCanvas(FigureCanvas):
 		self.finished_y = []
 		self.visited_points = self.ax.scatter(self.finished_x, self.finished_y, color = 'green', marker = 'o')
 
-
+######################################################################################################
+######################################################################################################
 
 class Axis_Controls(QGroupBox):
 	def __init__(self):
@@ -128,15 +130,15 @@ class Axis_Controls(QGroupBox):
 		self.xlowInput = QSpinBox()
 		self.ylowInput = QSpinBox()
 
-		self.xupInput.setRange(-60, 60)
-		self.yupInput.setRange(-60, 60)
-		self.xlowInput.setRange(-60, 60)
-		self.ylowInput.setRange(-60, 60)
+		self.xupInput.setRange(-175, 90)
+		self.yupInput.setRange(-90, 90)
+		self.xlowInput.setRange(-175, 90)
+		self.ylowInput.setRange(-90, 90)
 
-		self.xupInput.setValue(35)
-		self.yupInput.setValue(35)
-		self.xlowInput.setValue(-35)
-		self.ylowInput.setValue(-35)
+		self.xupInput.setValue(-175)
+		self.yupInput.setValue(25)
+		self.xlowInput.setValue(0)
+		self.ylowInput.setValue(-25)
 
 		self.xaxisLabel = QLabel("z axis range:")
 		self.yaxisLabel = QLabel("θ axis range:")
@@ -242,27 +244,67 @@ class Acquisition_Controls(QGroupBox):
 		super().__init__()
 		self.DataRun = QPushButton("Start Data Acquisition", self)
 		self.TestShot = QPushButton("Take Test Shot", self)
+		self.Halt = QPushButton("STOP MOTOR\nHALT ACQUISITION", self)
+		self.Halt.setStyleSheet('background-color: red; font: bold 15px; border-width: 2px; border-radius: 6px; border-style: outset; border-color: beige')
 
 		ACLayout = QGridLayout()
 		ACLayout.addWidget(self.DataRun, 0, 0)
 		ACLayout.addWidget(self.TestShot, 0, 1)
+		ACLayout.addWidget(self.Halt, 1, 0, 1, 2)
 
 		self.setLayout(ACLayout)
 
 
 ######################################################################################################
 ######################################################################################################
+class Wait_For_Motion_Complete_Thread(QRunnable):
 
+	def __init__(self, mc):
+		super(Wait_For_Motion_Complete_Thread, self).__init__()
+
+		self.signals = Signals()
+		self.mc = mc
+
+	def run(self):
+
+		self.signals.motor_move.emit(True)
+
+		timeout = time.time() + 300
+		print('starting the movement thraead')
+
+		while True :
+			try:
+				time.sleep(0.2)
+				x_stat, y_stat = self.mc.check_status()
+				#print('check status')
+
+				x_not_moving = x_stat.find('M') == -1
+				y_not_moving = y_stat.find('M') == -1
+
+
+				if x_not_moving and y_not_moving:
+					break
+				elif time.time() > timeout:
+					raise TimeoutError("Motor has been moving for over 5min???")
+			except KeyboardInterrupt:
+				self.mc.stop_now()
+				raise KeyboardInterrupt('The motor unexpectedly stopped due to keyboard interruption.')
+				break
+
+		print ("Motor stopped")
+		self.mc.disable()
+		self.signals.motor_move.emit(False)
+
+
+
+######################################################################################################
+######################################################################################################
 
 class Motor_Movement(QGroupBox):
 
-	def __init__(self, x_ip_addr = None, y_ip_addr = None, MOTOR_PORT = None):
+	def __init__(self, mc):
 		super().__init__()
 		self.setTitle("Motor Movement Control")
-
-		self.x_ip_addr = x_ip_addr
-		self.y_ip_addr = y_ip_addr
-		self.MOTOR_PORT = MOTOR_PORT
 
 		# (cm) Move probe to absolute position along the shaft counted by motor encoder
 		self.xMoveLabel = QLabel("Move z motor to:")
@@ -270,30 +312,18 @@ class Motor_Movement(QGroupBox):
 		self.xMoveInput = QLineEdit()
 		self.yMoveInput = QLineEdit()
 
-		# For 3D acquisition, need another feature to move the probe to absolute position.
-		# this should be done by calling "move_to_position" function in Motor_Control_3D, with corresponding geometry calculation
-
-		# Set velocity.
-		self.xvLabel = QLabel("Set z velocity:")
-		self.yvLabel = QLabel("Set θ velocity:")
-		self.xvInput = QLineEdit()
-		self.yvInput = QLineEdit()
-
 
 		self.MoveButton     = QPushButton("Move Motor", self)
-		self.StopNowButton  = QPushButton("BUG don't click", self)
-		self.SetZero        = QPushButton("Set Zero", self)
-		self.SetVelocity = QPushButton("Set Velocity", self)
+		self.StopNowButton  = QPushButton("STOP MOTOR", self)
 		self.MoveButton.clicked.connect(self.move_to_position)
 		self.StopNowButton.clicked.connect(self.stop_now)
-		self.SetZero.clicked.connect(self.zero)
-		self.SetVelocity.clicked.connect(self.set_velocity)
 
 		self.CurposLabel = QLabel("Current probe position (cm, deg):")
 		self.CurposInput = QLineEdit(readOnly = True)
-		self.velocityButton = QPushButton("Get motor speed (rpm):")
-		self.velocityInput = QLineEdit(readOnly = True)
-		self.velocityButton.clicked.connect(self.update_current_speed)
+
+		self.StatusLabel = QLabel("Current status:")
+		self.StatusInput = QLineEdit(readOnly = True)
+		self.StatusInput.setText('Motor Stopped')
 
 		MMLayout = QGridLayout()
 		MMLayout.addWidget(self.xMoveLabel, 0, 0)
@@ -301,41 +331,51 @@ class Motor_Movement(QGroupBox):
 		MMLayout.addWidget(self.xMoveInput, 1, 0)
 		MMLayout.addWidget(self.yMoveInput, 1, 1)
 		MMLayout.addWidget(self.MoveButton, 1, 2)
-		MMLayout.addWidget(self.xvLabel, 2, 0)
-		MMLayout.addWidget(self.yvLabel, 2, 1)
-		MMLayout.addWidget(self.xvInput, 3, 0)
-		MMLayout.addWidget(self.yvInput, 3, 1)
-		MMLayout.addWidget(self.SetVelocity, 3, 2)
-		MMLayout.addWidget(self.SetZero, 4, 0)
-		MMLayout.addWidget(self.StopNowButton, 4, 1)
-		MMLayout.addWidget(self.CurposLabel, 5, 0)
-		MMLayout.addWidget(self.CurposInput, 5, 1, 1, 2)
-		MMLayout.addWidget(self.velocityButton, 6, 0)
-		MMLayout.addWidget(self.velocityInput, 6, 1, 1, 2)
+		MMLayout.addWidget(self.StopNowButton, 2, 0, 1, 3)
+		MMLayout.addWidget(self.CurposLabel, 3, 0)
+		MMLayout.addWidget(self.CurposInput, 3, 1, 1, 2)
+		MMLayout.addWidget(self.StatusLabel, 4, 0)
+		MMLayout.addWidget(self.StatusInput, 4, 1, 2, 2)
 
 
 		self.setLayout(MMLayout)
 
-		self.mc = Motor_Control_2D(x_ip_addr = self.x_ip_addr, y_ip_addr = self.y_ip_addr)
+		self.mc = mc
+		self.threadpool = QThreadPool()
 
-#----------------------------------------------------------------------
+		self.motor_moving = False
+
+		self.last_pos = 0.0
+
+
 
 	def move_to_position(self):
 		# Directly move the motor to their absolute position
 		try:
+			self.mc.enable()
 			x_pos = float(self.xMoveInput.text())
 			y_pos = float(self.yMoveInput.text())
+			self.motor_moving = True
 			self.mc.move_to_position(x_pos, y_pos)
+			self.wait_for_motion_complete = Wait_For_Motion_Complete_Thread(self.mc)
+			self.wait_for_motion_complete.signals.motor_move.connect(self.change_movement_status)
+			self.threadpool.start(self.wait_for_motion_complete)
 		except ValueError:
 			QMessageBox.about(self, "Error", "Position should be valid numbers.")
 
-	# def wait_for_motion_complete(self):
-	# 	self.mc.wait_for_motion_complete()
+
+	def change_movement_status(self, boo):
+		self.motor_moving = boo
+		if self.motor_moving == True:
+			self.StatusInput.setText('Motor Moving')
+		else:
+			self.StatusInput.setText('Motor Stopped')
 
 
 	def stop_now(self):
 		# Stop motor movement now
 		self.mc.stop_now()
+		print('STOP NOW HIT')
 
 
 	def zero(self):
@@ -358,7 +398,13 @@ class Motor_Movement(QGroupBox):
 
 
 	def current_probe_position(self):
-		return self.mc.current_probe_position()
+		#print('position queried, moving status is ', self.motor_moving)
+		if self.motor_moving == False:
+			self.last_pos = self.mc.current_probe_position()
+		else:
+			#print('try update position but motor is moving')
+			pass
+		return self.last_pos
 
 	def update_current_speed(self):
 		self.speedx, self.speedy = self.ask_velocity()
@@ -368,6 +414,90 @@ class Motor_Movement(QGroupBox):
 		self.mc.set_input_usage(usage)
 
 
+
+#############################################################################################
+#############################################################################################
+
+class Admin_Tab(QGroupBox):
+	def __init__(self, mc):
+		super().__init__()
+		self.setTitle("Admin Tab")
+
+		# Set velocity
+		self.xvLabel = QLabel("Set z velocity:")
+		self.yvLabel = QLabel("Set θ velocity:")
+		self.xvInput = QLineEdit()
+		self.yvInput = QLineEdit()
+		self.SetVelocity = QPushButton("Set Velocity", self)
+
+		# Set zero position
+		self.SetZero = QPushButton("Set Zero", self)
+
+		# Clear alarm
+		self.ClearAlarm = QPushButton("Clear Alarm", self)
+
+		# Ask velocity
+		self.velocityButton = QPushButton("Get motor speed (rpm):")
+		self.velocityInput = QLineEdit(readOnly = True)
+
+		self.SetZero.clicked.connect(self.zero)
+		self.SetVelocity.clicked.connect(self.set_velocity)
+		self.ClearAlarm.clicked.connect(self.clear_alarm)
+		self.velocityButton.clicked.connect(self.update_current_speed)
+
+		ATLayout = QGridLayout()
+		ATLayout.addWidget(self.xvLabel, 0, 0)
+		ATLayout.addWidget(self.yvLabel, 0, 1)
+		ATLayout.addWidget(self.xvInput, 1, 0)
+		ATLayout.addWidget(self.yvInput, 1, 1)
+		ATLayout.addWidget(self.SetVelocity, 1, 2)
+		ATLayout.addWidget(self.velocityButton, 2, 0)
+		ATLayout.addWidget(self.velocityInput, 2, 1, 1, 2)
+		ATLayout.addWidget(self.SetZero, 3, 0)
+		ATLayout.addWidget(self.ClearAlarm, 4, 0)
+
+
+		self.setLayout(ATLayout)
+
+		self.mc = mc
+
+	def zero(self):
+		zeroreply=QMessageBox.question(self, "Set Zero",
+			"You are about to set the current probe position to (0,0). Are you sure?",
+			QMessageBox.Yes, QMessageBox.No)
+		if zeroreply == QMessageBox.Yes:
+			QMessageBox.about(self, "Set Zero", "Probe position is now (0,0).")
+			self.mc.set_zero()
+
+
+	def ask_velocity(self):
+		return self.mc.ask_velocity()
+
+
+	def set_velocity(self):
+		xv = self.xvInput.text()
+		yv = self.yvInput.text()
+		self.mc.set_velocity(xv, yv)
+
+
+	def current_probe_position(self):
+		#print('position queried, moving status is ', self.motor_moving)
+		if self.motor_moving == False:
+			self.last_pos = self.mc.current_probe_position()
+		else:
+			#print('try update position but motor is moving')
+			pass
+		return self.last_pos
+
+	def update_current_speed(self):
+		self.speedx, self.speedy = self.ask_velocity()
+		self.velocityInput.setText("(" + str(self.speedx) + " ," + str(self.speedy) +")")
+
+	def set_input_usage(self, usage):
+		self.mc.set_input_usage(usage)
+
+	def clear_alarm(self):
+		self.mc.clear_alarm()
 
 #############################################################################################
 #############################################################################################
@@ -400,7 +530,7 @@ class Scope_Channel(QGroupBox):
 		self.setLayout(SCLayout)
 
 
-update_pos = None
+
 
 #############################################################################################
 #############################################################################################
@@ -422,12 +552,17 @@ class Software_Version(QGroupBox):
 
 #############################################################################################
 #############################################################################################
+
 class Signals(QObject):
 	finished = pyqtSignal()
 	updated_position = pyqtSignal(float, float)
 	new_screen_dump = pyqtSignal()
 	finished_position = pyqtSignal(float, float)
 	cancel = pyqtSignal()
+	motor_move = pyqtSignal(bool)
+
+######################################################################################################
+######################################################################################################
 
 class Data_Run_Thread(QRunnable):
 
@@ -439,6 +574,9 @@ class Data_Run_Thread(QRunnable):
 		self.channel = channel_description
 		self.ip_addrs = ip_addrs
 		self.signals = Signals()
+
+		self.threadactive = True
+
 
 	def get_channel_description(self, tr) -> str:
 		""" callback function to return a string containing a description of the data in each recorded channel """
@@ -561,6 +699,8 @@ class Data_Run_Thread(QRunnable):
 		fds = grp.create_dataset(fds_name, data=open(fn, 'r').read())
 		fds.attrs['filename'] = fn
 		fds.attrs['modified'] = time.ctime(os.path.getmtime(fn))
+
+
 
 	#----------------------------------------------------------------------------------------
 
@@ -703,51 +843,55 @@ class Data_Run_Thread(QRunnable):
 
 					for pos in positions:
 						# move to next position
-						print('position index =', pos[0], '  x =', pos[1], '  y =', pos[2], end='')
-						mc.move_to_position(pos[1], pos[2])
-						#mc.wait_for_motion_complete()
-						self.signals.updated_position.emit(pos[1], pos[2])
-						x_encoder, y_encoder = mc.current_probe_position()
-						self.signals.updated_position.emit(x_encoder, y_encoder)
+						if self.threadactive:
+							print('position index =', pos[0], '  x =', pos[1], '  y =', pos[2], end='')
+							mc.move_to_position(pos[1], pos[2])
+							mc.wait_for_motion_complete()
+							self.signals.updated_position.emit(pos[1], pos[2])
+							x_encoder, y_encoder = mc.current_probe_position()
+							self.signals.updated_position.emit(x_encoder, y_encoder)
 
-						# Disable the motor current output when taking the data
-						mc.disable()
+							# Disable the motor current output when taking the data
+							mc.disable()
 
-						if pos[0] > 1:
-							print ('Estimated remaining time:%6.2f'%((len(positions) - pos[0]) * (time.time()-acquisition_loop_start_time)/pos[0] / 3600))
-						else:
-							print ('')
+							if pos[0] > 1:
+								print ('Estimated remaining time:%6.2f'%((len(positions) - pos[0]) * (time.time()-acquisition_loop_start_time)/pos[0] / 3600))
+							else:
+								print ('')
 
-						print('------------------', scope.gaaak_count, '-------------------- ',pos[0],sep='')
+								print('------------------', scope.gaaak_count, '-------------------- ',pos[0],sep='')
 
 		#				scope.autoscale('C3')  # for now can only _increase_ the V/div
 
 						# do averaging, and copy scope data for each trace on the screen to the output HDF5 file
-						self.acquire_displayed_traces(scope, datasets, hdr_data, pos[0]-1)   # argh the pos[0] index is 1-based
+							self.acquire_displayed_traces(scope, datasets, hdr_data, pos[0]-1)   # argh the pos[0] index is 1-based
 
 						# Show plot traces on GUI
-						try:
-							scope.screen_dump()
-							self.signals.new_screen_dump.emit()
+							try:
+								scope.screen_dump()
+								self.signals.new_screen_dump.emit()
 						# except VisaIOError: #VisaIOError undefined?
 						# 	print ('Unable to grab screen due to VisaIOError')
 						# 	continue
-						except:
-							print ('Unable to grab screen due to unknown Error')
-							continue
+							except:
+								print ('Unable to grab screen due to unknown Error')
+								continue
 
-						self.signals.finished_position.emit(x_encoder, y_encoder)
-						mc.enable()
+							self.signals.finished_position.emit(x_encoder, y_encoder)
+							mc.enable()
 
 						# at least get one time array recorded for swmr functions
-						if pos[0] == 1:
-							time_ds[0:NTimes] = scope.time_array()[0:NTimes]
+							if pos[0] == 1:
+								time_ds[0:NTimes] = scope.time_array()[0:NTimes]
 							#time_ds.flush()
-
+						else:
+							self.signals.cancel.emit()
+							break
 					######### END MAIN ACQUISITION LOOP #########
 
 				except KeyboardInterrupt:
 					print('\n______Halted due to Ctrl-C______', '  at', time.ctime())
+
 
 				# copy the array of time values, corresponding to the last acquired trace, to the times_dataset
 				time_ds[0:NTimes] = scope.time_array()[0:NTimes]      # specify number of points, sometimes scope return extras
@@ -770,7 +914,22 @@ class Data_Run_Thread(QRunnable):
 			self.signals.finished.emit()
 			#done
 
+	def halt_acquisition(self):
+		'''
+			Halt data acquisition
+			Ask if want to continue or cancel the acquisition
+		'''
+		self.threadactive = False
 
+		# ret = QMessageBox.question(self,'', "Acquisition halted.\nDo you want to continue?", QMessageBox.Yes | QMessageBox.No)
+		# if ret == QMessageBox.Yes:
+		# 	return True
+		# else:
+		# 	QMessageBox.about(self, "", "Data acquisition cancelled.")
+		# 	return False
+
+######################################################################################################
+######################################################################################################
 
 class Test_Shot_Thread(QRunnable):
 
@@ -805,6 +964,16 @@ class Test_Shot_Thread(QRunnable):
 #############################################################################################
 
 
+
+######################################################################################################
+######################################################################################################
+
+
+
+#############################################################################################
+#############################################################################################
+
+
 class Window(QWidget):
 
 	def __init__(self):
@@ -818,9 +987,10 @@ class Window(QWidget):
 		self.sc = Scope_Channel()
 		self.x_ip = "192.168.0.50"
 		self.y_ip = "192.168.0.40"
-		self.scope_ip = "192.168.0.60"
+		self.scope_ip = "192.168.0.61"
 		self.port_ip = int(7776)
-		self.mm = Motor_Movement(x_ip_addr = self.x_ip, y_ip_addr = self.y_ip, MOTOR_PORT = self.port_ip)
+		self.mc = Motor_Control_2D(x_ip_addr = self.x_ip, y_ip_addr = self.y_ip)
+		self.mm = Motor_Movement(self.mc)
 		self.mm.set_input_usage(2)
 
 		self.axc.xupInput.valueChanged.connect(self.axis_change)
@@ -832,16 +1002,22 @@ class Window(QWidget):
 
 		self.ac.DataRun.clicked.connect(self.start_data_run)
 		self.ac.TestShot.clicked.connect(self.start_test_shot)
+		self.ac.Halt.clicked.connect(self.halt_data_run)
 
 
 		self.ScopeScreen = QLabel(self)
 		self.update_screen_dump()
 
+		self.at = Admin_Tab(self.mc)
+
+		self.tabs = QTabWidget()
+		self.tabs.addTab(self.mm, 'DAQ Setup')
+		self.tabs.addTab(self.at, 'Admin Setup')
 
 		layout = QGridLayout()
 		layout.addWidget(self.canvas, 0, 0, 1, 2)
 		layout.addWidget(self.axc, 1, 0, 1, 2)			#axes control
-		layout.addWidget(self.mm, 2, 0, 2, 1)					#motor movement
+		layout.addWidget(self.tabs, 2, 0, 2, 1)					#motor movement
 		layout.addWidget(self.pc, 2, 1, 2, 1)					#position control
 		layout.addWidget(self.ac, 2, 2)					#acquisition control
 		layout.addWidget(self.sc, 2, 3, 2, 1)					#scope channel comments
@@ -857,7 +1033,8 @@ class Window(QWidget):
 		# Set timer to update current probe position and instant motor velocity
 		self.timer = QtCore.QTimer(self)
 		self.timer.timeout.connect(self.update_current_position)
-		self.timer.start(500)
+		self.timer.start(2000)
+
 
 	# def update_timer(self):
 	# 	if data_running == False:
@@ -877,11 +1054,15 @@ class Window(QWidget):
 
 	def update_current_position(self):
 		if data_running == False:
-			self.xnow, self.ynow = self.mm.current_probe_position()
-			self.canvas.point.remove()
-			self.canvas.update_probe(self.xnow, self.ynow)
-			self.mm.CurposInput.setText("(" + str(round(self.xnow, 2)) + " ," + str(round(self.ynow, 2)) +")")
+			try:
 
+				self.xnow, self.ynow = self.mm.current_probe_position()
+				self.canvas.point.remove()
+				self.canvas.update_probe(self.xnow, self.ynow)
+				self.mm.CurposInput.setText("(" + str(round(self.xnow, 2)) + " ," + str(round(self.ynow, 2)) +")")
+			except TypeError:
+				raise TypeError('Motor position returns NoneType')
+				pass
 		else:
 			pass
 
@@ -896,6 +1077,7 @@ class Window(QWidget):
 		else:
 			print("Why is this called when data_running == False ?")
 
+
 	def update_screen_dump(self):
 		self.pixmap = QPixmap("scope_screen_dump.png")
 		self.ScopeScreen.setPixmap(self.pixmap)
@@ -909,10 +1091,6 @@ class Window(QWidget):
 		else:
 			print("Why is this called when data_running == False ?")
 
-
-	def update_current_speed(self):
-			self.speedx, self.speedy = self.mm.ask_velocity()
-			self.velocityInput.setText("(" + str(self.speedx) + " ," + str(self.speedy) +")")
 
 	def update_parameters(self):
 		self.parameters = {}
@@ -935,6 +1113,12 @@ class Window(QWidget):
 		if self.update == True:
 			self.canvas.matrix.remove()
 			self.canvas.update_figure(self.param)
+
+			# autoscale the axis range
+			self.axc.xupInput.setValue(self.param['xmax'] + 2)
+			self.axc.yupInput.setValue(self.param['ymax'] + 2)
+			self.axc.xlowInput.setValue(self.param['xmin'] - 2)
+			self.axc.ylowInput.setValue(self.param['ymin'] - 2)
 		else:
 			pass
 
@@ -962,7 +1146,7 @@ class Window(QWidget):
 		self.ip_addrs['scope'] = self.scope_ip
 
 		self.data_run = Data_Run_Thread(self.hdf5_filename, self.pos_param, self.channel_description, self.ip_addrs)
-		self.freeze_all_controls()
+		self.freeze_all_controls(True)
 		self.data_run.signals.finished.connect(self.data_run_finished)
 		self.data_run.signals.cancel.connect(self.acquisition_canceled)
 		self.data_run.signals.updated_position.connect(self.update_current_position_during_data_run)
@@ -970,14 +1154,37 @@ class Window(QWidget):
 		self.data_run.signals.new_screen_dump.connect(self.update_screen_dump)
 		self.threadpool.start(self.data_run)
 
+	def halt_data_run(self):
+		'''
+			Stop motor immediately
+			Halt data acquisition
+			Ask if want to continue or cancel the acquisition
+		'''
+		self.mm.stop_now()
+
+		if data_running == True:
+			self.data_run.halt_acquisition()
+			# ret = QMessageBox.question(self,'', "Acquisition halted.\nDo you want to continue?", QMessageBox.Yes | QMessageBox.No)
+			# if ret == QMessageBox.Yes:
+			# 	self.data_run_continue = True
+			# 	# continue the thread
+			# else:
+			# 	self.data_run_continue = False
+			# 	QMessageBox.about(self, "", "Data acquisition cancelled.")
+			# 	# kill the thread
+		else:
+			print('data run thread not running. no need to halt.')
+
+
+
 	def acquisition_canceled(self):
 		QMessageBox.about(self, "Acquisition Status", "Data acquisition cancelled.")
-		self.enable_all_controls()
+		self.freeze_all_controls(False)
 
 
 	def data_run_finished(self):
 		QMessageBox.about(self, "Acquisition Status", "Data acquisition complete.")
-		self.enable_all_controls()
+		self.freeze_all_controls(False)
 		self.canvas.visited_points.remove()
 		self.canvas.initialize_visited_points()
 		# self.canvas.finished_x = []
@@ -985,35 +1192,19 @@ class Window(QWidget):
 
 	def test_shot_finished(self):
 		QMessageBox.about(self, "Take Test Shot", "Test shot is finished.")
-		self.enable_all_controls()
-		# global data_running
-		# data_running = False
-		# self.pc.setEnabled(True)
-		# self.ac.setEnabled(True)
-		# self.sc.setEnabled(True)
-		# self.mm.setEnabled(True)
+		self.freeze_all_controls(False)
 
-	def freeze_all_controls(self):
-		global data_running
-		data_running = True
-		self.pc.setEnabled(False)
-		self.ac.setEnabled(False)
-		self.sc.setEnabled(False)
-		self.mm.MoveButton.setEnabled(False)
-		self.mm.SetZero.setEnabled(False)
-		self.mm.SetVelocity.setEnabled(False)
-		self.mm.velocityButton.setEnabled(False)
 
-	def enable_all_controls(self):
+	def freeze_all_controls(self, boo):
 		global data_running
-		data_running = False
-		self.pc.setEnabled(True)
-		self.ac.setEnabled(True)
-		self.sc.setEnabled(True)
-		self.mm.MoveButton.setEnabled(True)
-		self.mm.SetZero.setEnabled(True)
-		self.mm.SetVelocity.setEnabled(True)
-		self.mm.velocityButton.setEnabled(True)
+		data_running = boo
+		status = not boo
+		self.pc.setEnabled(status)
+		self.ac.DataRun.setEnabled(status)
+		self.ac.TestShot.setEnabled(status)
+		self.sc.setEnabled(status)
+		self.mm.MoveButton.setEnabled(status)
+		self.at.setEnabled(status)
 
 
 	def start_test_shot(self):

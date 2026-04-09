@@ -330,6 +330,7 @@ class LeCroy_Scope:
 		# find out what happened:
 		return int(self.scope.query('VBS? "return=app.Acquisition.Horizontal.NumPoints"'))
 
+
 	#-------------------------------------------------------------------------
 
 
@@ -770,10 +771,9 @@ class LeCroy_Scope:
 
 ###############################################################################
 
-scope_ip_addr = '128.97.13.195'   # '128.97.13.149'
+scope_ip_addr = '192.168.0.60'   # '128.97.13.149'
 
 if __name__ == '__main__':
-
 
 	def screen_dump():
 		global scope_ip_addr

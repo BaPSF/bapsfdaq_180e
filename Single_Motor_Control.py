@@ -34,6 +34,7 @@ class Motor_Control:
 
 	def __init__(self, server_ip_addr = None, msipa_cache_fn = None, verbose = True):
 		self.verbose = verbose
+
 		if msipa_cache_fn == None:
 			self.msipa_cache_fn = self.MSIPA_CACHE_FN
 		else:
@@ -63,6 +64,8 @@ class Motor_Control:
 #					self.reset_motor()
 					self.inhibit(inh=False)
 					self.send_text('IFD') #set response format to decimal
+					#self.send_text('CM21')
+					#self.send_text('DL2')
 
 				else:
 					print('motor server returned', t, sep='')
@@ -151,6 +154,7 @@ class Motor_Control:
 		data = s.recv(BUF_SIZE)
 		s.close()
 		return_text = data.decode('ASCII')
+		#print(text,' ', return_text)
 		return return_text
 
 #		if timeout is not None:
@@ -321,6 +325,11 @@ class Motor_Control:
 		self.send_text('RE',timeout=5)
 		print("reset motor\n")
 
+	def clear_alarm(self):
+
+		self.send_text('AR')
+		print('Clear alarm. Check LED light to see if the fault condition persists.')
+
 
 #-------------------------------------------------------------------------------------------
 
@@ -364,6 +373,11 @@ class Motor_Control:
 		self.send_text('SI'+str(usage))
 		print('set x3 input usage to SI' + str(usage) + '\n')
 
+	def sdsdsdsds(self):
+		self.send_text('CM21')
+		self.send_text('DL2')
+		print('sdsdsdds')
+
 
 
 ########################################################################################################
@@ -371,9 +385,10 @@ class Motor_Control:
 
 if __name__ == '__main__':
 
-	mc1 = Motor_Control(verbose=True, server_ip_addr="192.168.0.40")
-	mc1.set_position(0)
-	mc1.current_position()
+
+	mc = Motor_Control(verbose=True, server_ip_addr="192.168.0.50")
+	mc.enable()
+	#mc1.current_position()
 
 #	resp = mc1.send_text('RO0')
 

@@ -10,6 +10,7 @@
 # Author: Yuchen Qian
 # Oct 2017
 #
+19
 
 import numpy
 import math
@@ -54,8 +55,8 @@ class MyMplCanvas(FigureCanvas):
 	def __init__(self, parent=None, width=6, height=3, dpi=100):
 		fig = Figure(figsize=(width, height), dpi=dpi)
 		self.ax = fig.add_subplot(111)
-		self.ax.set_xlim(-35, 35)
-		self.ax.set_ylim(-35, 35)
+		self.ax.set_xlim(-25, 25)
+		self.ax.set_ylim(-25, 25)
 
 		FigureCanvas.__init__(self, fig)
 		self.setParent(parent)
@@ -133,10 +134,10 @@ class Axis_Controls(QGroupBox):
 		self.xlowInput.setRange(-60, 60)
 		self.ylowInput.setRange(-60, 60)
 
-		self.xupInput.setValue(35)
-		self.yupInput.setValue(35)
-		self.xlowInput.setValue(-35)
-		self.ylowInput.setValue(-35)
+		self.xupInput.setValue(25)
+		self.yupInput.setValue(25)
+		self.xlowInput.setValue(-25)
+		self.ylowInput.setValue(-25)
 
 		self.xaxisLabel = QLabel("x axis range:")
 		self.yaxisLabel = QLabel("y axis range:")
@@ -294,8 +295,8 @@ class Motor_Movement(QGroupBox):
 
 
 		self.MoveButton     = QPushButton("Move Motor", self)
-		self.StopNowButton  = QPushButton("BUG don't click", self)
-		self.SetZero        = QPushButton("Set Zero", self)
+		self.StopNowButton  = QPushButton("BUG (Don't click)", self)
+		self.SetZero        = QPushButton("Set Zero (Don't click or get an F)", self)
 		self.SetVelocity = QPushButton("Set Velocity", self)
 		self.MoveButton.clicked.connect(self.move_to_position)
 		self.StopNowButton.clicked.connect(self.stop_now)
@@ -330,6 +331,8 @@ class Motor_Movement(QGroupBox):
 		self.setLayout(MMLayout)
 
 		self.mc = Motor_Control_2D(x_ip_addr = self.x_ip_addr, y_ip_addr = self.y_ip_addr)
+
+		self.mc.sdsdsdsds()
 
 #----------------------------------------------------------------------
 
@@ -557,6 +560,10 @@ class Data_Run_Thread(QRunnable):
 			except KeyError:
 				print(tr + ' is displayed on the scope but not recorded. To record this channel, please display the trace before starting the data run.')
 				continue
+			except TypeError:
+				print('Not enough points from scope trace')
+				datasets[tr][pos_ndx,:] = scope.acquire(tr)[:]
+				continue
 
 		for tr in traces:
 			try:
@@ -677,7 +684,9 @@ class Data_Run_Thread(QRunnable):
 				scope_grp.attrs['ScopeType'] = scope.idn_string
 
 				NPos = len(positions)
-				NTimes = scope.max_samples()
+				NTimes = scope.max_samples() # Scope somtimes return less sample than this
+
+
 
 				datasets = {}
 				hdr_data = {}
@@ -847,10 +856,13 @@ class Window(QWidget):
 		self.x_ip = "192.168.0.70"
 		self.y_ip = "192.168.0.80"
 		self.scope_ip = "192.168.0.60"
+		#self.scope_ip = "192.168.7.26"
 		self.port_ip = int(7776)
 		self.mm = Motor_Movement(x_ip_addr = self.x_ip, y_ip_addr = self.y_ip, MOTOR_PORT = self.port_ip)
 		self.mm.set_input_usage(3)
 		self.mm.set_steps_per_rev(20000, 20000)
+
+
 
 		self.axc.xupInput.valueChanged.connect(self.axis_change)
 		self.axc.yupInput.valueChanged.connect(self.axis_change)

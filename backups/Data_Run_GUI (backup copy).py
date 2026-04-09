@@ -10,25 +10,22 @@
 # Author: Yuchen Qian
 # Oct 2017
 #
-19
+
+
 
 import numpy
 import math
 import sys
 import os
-import os.path
 import time
-import datetime
-from Motor_Control_2D_xy import Motor_Control_2D
+from Motor_Control_2D import Motor_Control_2D
 from LeCroy_Scope import LeCroy_Scope, WAVEDESC_SIZE
 from LeCroy_Scope import EXPANDED_TRACE_NAMES
 import tkinter
 from tkinter import filedialog
-import tkinter.messagebox
 import h5py as h5py
+import os.path
 
-dir_path=os.path.dirname(os.path.realpath(__file__))
-version_number="03/01/2018 12:37pm"			# update this when a change has been made
 
 from PyQt5 import QtCore
 # from PyQt5.QtWidgets import (QApplication, QBoxLayout, QCheckBox, QComboBox,
@@ -43,6 +40,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.patches as patches
 from scipy.linalg import norm
+import tkinter
+import tkinter.messagebox
+
 
 data_running = False
 #############################################################################################
@@ -55,8 +55,8 @@ class MyMplCanvas(FigureCanvas):
 	def __init__(self, parent=None, width=6, height=3, dpi=100):
 		fig = Figure(figsize=(width, height), dpi=dpi)
 		self.ax = fig.add_subplot(111)
-		self.ax.set_xlim(-25, 25)
-		self.ax.set_ylim(-25, 25)
+		self.ax.set_xlim(-35, 35)
+		self.ax.set_ylim(-35, 35)
 
 		FigureCanvas.__init__(self, fig)
 		self.setParent(parent)
@@ -134,13 +134,13 @@ class Axis_Controls(QGroupBox):
 		self.xlowInput.setRange(-60, 60)
 		self.ylowInput.setRange(-60, 60)
 
-		self.xupInput.setValue(25)
-		self.yupInput.setValue(25)
-		self.xlowInput.setValue(-25)
-		self.ylowInput.setValue(-25)
+		self.xupInput.setValue(35)
+		self.yupInput.setValue(35)
+		self.xlowInput.setValue(-35)
+		self.ylowInput.setValue(-35)
 
-		self.xaxisLabel = QLabel("x axis range:")
-		self.yaxisLabel = QLabel("y axis range:")
+		self.xaxisLabel = QLabel("z axis range:")
+		self.yaxisLabel = QLabel("θ axis range:")
 		self.toLabel = QLabel("to")
 		self.toLabel2 = QLabel("to")
 		self.blankLabel = QLabel("  ")
@@ -168,12 +168,12 @@ class Position_Controls(QGroupBox):
 		super().__init__()
 		self.setTitle("Set up DAQ position")
 
-		self.xMaxLabel = QLabel("Max x:")
-		self.xMinLabel = QLabel("Min x:")
-		self.yMaxLabel = QLabel("Max y:")
-		self.yMinLabel = QLabel("Min y:")
-		self.nxLabel = QLabel("nx:")
-		self.nyLabel = QLabel("ny:")
+		self.xMaxLabel = QLabel("Max z:")
+		self.xMinLabel = QLabel("Min z:")
+		self.yMaxLabel = QLabel("Max θ:")
+		self.yMinLabel = QLabel("Min θ:")
+		self.nxLabel = QLabel("nz:")
+		self.nyLabel = QLabel("nθ:")
 
 		#valueLabel = QLabel("Current value:")
 
@@ -188,8 +188,8 @@ class Position_Controls(QGroupBox):
 		self.xMinInput.setText("0")
 		self.yMaxInput.setText("0")
 		self.yMinInput.setText("0")
-		self.nxInput.setText("1")
-		self.nyInput.setText("1")
+		self.nxInput.setText("0")
+		self.nyInput.setText("0")
 
 
 		self.ConfirmButton = QPushButton("Confirm Input",self)
@@ -242,24 +242,11 @@ class Acquisition_Controls(QGroupBox):
 	def __init__(self):
 		super().__init__()
 		self.DataRun = QPushButton("Start Data Acquisition", self)
-		self.TestShot = QPushButton("Take Single Test Shot", self)
-		self.num_run = QSpinBox()
-		self.num_shots = QSpinBox()
-		self.num_run_label = QLabel("Number of total runs:")
-		self.num_shots_label = QLabel("Shots per position:")
-
-		self.num_run.setRange(1, 100)
-		self.num_shots.setRange(1, 200)
-		self.num_run.setValue(1)
-		self.num_shots.setValue(1)
+		self.TestShot = QPushButton("Take Test Shot", self)
 
 		ACLayout = QGridLayout()
 		ACLayout.addWidget(self.DataRun, 0, 0)
 		ACLayout.addWidget(self.TestShot, 0, 1)
-		ACLayout.addWidget(self.num_run_label, 1, 0)
-		ACLayout.addWidget(self.num_shots_label, 2, 0)
-		ACLayout.addWidget(self.num_run, 1, 1)
-		ACLayout.addWidget(self.num_shots, 2, 1)
 
 		self.setLayout(ACLayout)
 
@@ -279,8 +266,8 @@ class Motor_Movement(QGroupBox):
 		self.MOTOR_PORT = MOTOR_PORT
 
 		# (cm) Move probe to absolute position along the shaft counted by motor encoder
-		self.xMoveLabel = QLabel("Move x motor to:")
-		self.yMoveLabel = QLabel("Move y motor to:")
+		self.xMoveLabel = QLabel("Move z motor to:")
+		self.yMoveLabel = QLabel("Move θ motor to:")
 		self.xMoveInput = QLineEdit()
 		self.yMoveInput = QLineEdit()
 
@@ -288,22 +275,22 @@ class Motor_Movement(QGroupBox):
 		# this should be done by calling "move_to_position" function in Motor_Control_3D, with corresponding geometry calculation
 
 		# Set velocity.
-		self.xvLabel = QLabel("Set x velocity:")
-		self.yvLabel = QLabel("Set y velocity:")
+		self.xvLabel = QLabel("Set z velocity:")
+		self.yvLabel = QLabel("Set θ velocity:")
 		self.xvInput = QLineEdit()
 		self.yvInput = QLineEdit()
 
 
 		self.MoveButton     = QPushButton("Move Motor", self)
-		self.StopNowButton  = QPushButton("BUG (Don't click)", self)
-		self.SetZero        = QPushButton("Set Zero (Don't click or get an F)", self)
+		self.StopNowButton  = QPushButton("STOP NOW", self)
+		self.SetZero        = QPushButton("Set Zero", self)
 		self.SetVelocity = QPushButton("Set Velocity", self)
 		self.MoveButton.clicked.connect(self.move_to_position)
 		self.StopNowButton.clicked.connect(self.stop_now)
 		self.SetZero.clicked.connect(self.zero)
 		self.SetVelocity.clicked.connect(self.set_velocity)
 
-		self.CurposLabel = QLabel("Current probe position (cm, cm):")
+		self.CurposLabel = QLabel("Current probe position (cm, deg):")
 		self.CurposInput = QLineEdit(readOnly = True)
 		self.velocityButton = QPushButton("Get motor speed (rpm):")
 		self.velocityInput = QLineEdit(readOnly = True)
@@ -332,8 +319,6 @@ class Motor_Movement(QGroupBox):
 
 		self.mc = Motor_Control_2D(x_ip_addr = self.x_ip_addr, y_ip_addr = self.y_ip_addr)
 
-		self.mc.sdsdsdsds()
-
 #----------------------------------------------------------------------
 
 	def move_to_position(self):
@@ -341,14 +326,10 @@ class Motor_Movement(QGroupBox):
 		try:
 			x_pos = float(self.xMoveInput.text())
 			y_pos = float(self.yMoveInput.text())
-			self.mc.enable()
 			self.mc.move_to_position(x_pos, y_pos)
-			self.mc.disable()
 		except ValueError:
 			QMessageBox.about(self, "Error", "Position should be valid numbers.")
 
-	def disable():
-		self.mc.disable()
 
 	def stop_now(self):
 		# Stop motor movement now
@@ -356,13 +337,7 @@ class Motor_Movement(QGroupBox):
 
 
 	def zero(self):
-		zeroreply=QMessageBox.question(self, "Set Zero",
-			"You are about to set the current probe position to (0,0). Are you sure?",
-			QMessageBox.Yes, QMessageBox.No)
-		if zeroreply == QMessageBox.Yes:
-			QMessageBox.about(self, "Set Zero", "Probe position is now (0,0).")
-			self.mc.set_zero()
-
+		self.mc.set_zero()
 
 	def ask_velocity(self):
 		return self.mc.ask_velocity()
@@ -381,11 +356,7 @@ class Motor_Movement(QGroupBox):
 		self.speedx, self.speedy = self.ask_velocity()
 		self.velocityInput.setText("(" + str(self.speedx) + " ," + str(self.speedy) +")")
 
-	def set_input_usage(self, usage):
-		self.mc.set_input_usage(usage)
 
-	def set_steps_per_rev(self, stepsx, stepsy):
-		self.mc.set_steps_per_rev(stepsx, stepsy)
 
 
 
@@ -422,23 +393,6 @@ class Scope_Channel(QGroupBox):
 
 update_pos = None
 
-#############################################################################################
-#############################################################################################
-
-class Software_Version(QGroupBox):
-	def __init__(self):
-		super().__init__()
-		self.mod_timestr=(os.path.getmtime(dir_path))
-		self.mod_datetime=datetime.datetime.fromtimestamp(self.mod_timestr).strftime('%Y-%b-%d %H:%M:%S %p')
-		self.vLabel = QLabel("Last Modified: ")
-		self.lastmodified = QLabel(self.mod_datetime)
-		self.version = QLabel("Version: "+version_number)
-
-		SVLayout = QGridLayout()
-		SVLayout.addWidget(self.vLabel, 0, 0)
-		SVLayout.addWidget(self.lastmodified, 1, 0)
-		SVLayout.addWidget(self.version, 2, 0)
-		self.setLayout(SVLayout)
 
 #############################################################################################
 #############################################################################################
@@ -447,7 +401,6 @@ class Signals(QObject):
 	updated_position = pyqtSignal(float, float)
 	new_screen_dump = pyqtSignal()
 	finished_position = pyqtSignal(float, float)
-	cancel = pyqtSignal()
 
 class Data_Run_Thread(QRunnable):
 
@@ -480,7 +433,6 @@ class Data_Run_Thread(QRunnable):
 		return '**** get_channel_description(): unknown trace indicator "'+tr+'". How did we get here?'
 
 
-
 	def get_positions(self) -> ([(),(),(),()], numpy.array, numpy.array, numpy.array):
 		""" callback function to return the positions array
 			This function is baroque because we need to to match the legacy format:
@@ -497,8 +449,8 @@ class Data_Run_Thread(QRunnable):
 		xpos = numpy.linspace(xmin,xmax,nx)
 		ypos = numpy.linspace(ymin,ymax,ny)
 
-		num_duplicate_shots = self.pos_param["num_shots"]       # number of duplicate shots recorded at the ith location
-		num_run_repeats = self.pos_param["num_run"]           # number of times to repeat sequentially over all locations
+		num_duplicate_shots = 1       # number of duplicate shots recorded at the ith location
+		num_run_repeats = 1           # number of times to repeat sequentially over all locations
 
 		# allocate the positions array, fill it with zeros
 		positions = numpy.zeros((nx*ny*num_duplicate_shots*num_run_repeats), dtype=[('Line_number', '>u4'), ('x', '>f4'), ('y', '>f4')])
@@ -514,7 +466,7 @@ class Data_Run_Thread(QRunnable):
 
 		# print(positions)       # for debugging
 
-		return positions, xpos, ypos, num_duplicate_shots
+		return positions, xpos, ypos
 
 	def get_hdf5_filename(self) -> str:
 
@@ -524,17 +476,11 @@ class Data_Run_Thread(QRunnable):
 		if fn == None  or len(fn) == 0  or  (avoid_overwrite  and  os.path.isfile(fn)):
 			# if we are not allowing possible overwrites as default, and the file already exists, use file open dialog
 			tk = tkinter.Tk()
-			tk.withdraw()		# prevent tk GUI from popping up
-			fnoptions={}
-			fnoptions['title'] = 'Save file as ...'
-			fnoptions['defaultextension'] = '.hdf5'
-			fnoptions['filetypes'] = [("Hierarchical Data Format",'*.hdf5'), ("All files",'*.*')]
-			fn = filedialog.asksaveasfilename(**fnoptions)
-			if not fn: 		# if user pressed 'cancel', fn = None
-				print("\nUser cancelled save file input.")
-				# if len(fn) == 0:
-				# 	#raise SystemExit(0)
-				# 	fn = exit
+			tk.withdraw()
+			fn = filedialog.asksaveasfilename(title='Filename empty or already exists. Please enter new name:')
+			if len(fn) == 0:
+				#raise SystemExit(0)     # user pressed 'cancel'
+				fn = exit
 			tk.destroy()
 
 		self.hdf5_filename = fn    # save it for later
@@ -553,25 +499,13 @@ class Data_Run_Thread(QRunnable):
 		traces = scope.displayed_traces()
 
 		for tr in traces:
-			try:
-				NPos,NTimes = datasets[tr].shape
-				datasets[tr][pos_ndx,0:NTimes] = scope.acquire(tr)[0:NTimes]    # sometimes for 10000 the scope hardware returns 10001 samples, so we have to specify [0:NTimes]
-				#?# datasets[tr].flush()
-			except KeyError:
-				print(tr + ' is displayed on the scope but not recorded. To record this channel, please display the trace before starting the data run.')
-				continue
-			except TypeError:
-				print('Not enough points from scope trace')
-				datasets[tr][pos_ndx,:] = scope.acquire(tr)[:]
-				continue
-
+			NPos,NTimes = datasets[tr].shape
+			datasets[tr][pos_ndx,0:NTimes] = scope.acquire(tr)[0:NTimes]    # sometimes for 10000 the scope hardware returns 10001 samples, so we have to specify [0:NTimes]
+			#?# datasets[tr].flush()
 		for tr in traces:
-			try:
-				hdr_data[tr][pos_ndx] = numpy.void(scope.header_bytes())    # valid after scope.acquire()
-				#?# hdr_data[tr].flush()
-				#?# are there consequences in timing or compression size if we do the flush()s recommend for the SWMR function?
-			except KeyError:
-				continue
+			hdr_data[tr][pos_ndx] = numpy.void(scope.header_bytes())    # valid after scope.acquire()
+			#?# hdr_data[tr].flush()
+			#?# are there consequences in timing or compression size if we do the flush()s recommend for the SWMR function?
 
 		scope.set_trigger_mode('NORM')   # resume triggering
 
@@ -613,7 +547,7 @@ class Data_Run_Thread(QRunnable):
 		thispath = os.path.realpath(__file__)
 		src_files = [thispath,           # ASSUME this file is in the same directory as the next two:
 					os.path.dirname(thispath)+os.sep+'LeCroy_Scope.py',
-					os.path.dirname(thispath)+os.sep+'Motor_Control_2D_xy.py'
+					os.path.dirname(thispath)+os.sep+'Motor_Control_2D.py'
 				   ]
 		#for testing, list these:s
 		print('Files to record in the hdf5 archive:')
@@ -622,8 +556,8 @@ class Data_Run_Thread(QRunnable):
 		print('    motor control file =', src_files[2])
 
 		#============================
-		# position array given by Data_Run_GUI_xy.py:
-		positions, xpos, ypos, num_duplicate_shots = self.get_positions()
+		# position array given by Data_Run_GUI_2D.py:
+		positions, xpos, ypos = self.get_positions()
 
 		# Create empty position arrays
 		if xpos is None:
@@ -641,171 +575,156 @@ class Data_Run_Thread(QRunnable):
 		# Open hdf5 file for writing (user callback for filename):
 
 		ofn = self.get_hdf5_filename()      # callback arg to the current function
-		if not ofn:		#if user pressed cancel during input file name
-			self.signals.cancel.emit()
-			pass
-		else:
-			f = h5py.File(ofn,  'w')  # 'w' - overwrite (we should have determined whether we want to overwrite in get_hdf5_filename())
-			# f = h5py.File(ofn,  'x')  # 'x' - no overwrite
+		print(ofn)
 
-			#============================
-			# create HDF5 groups similar to those in the legacy format:
+		f = h5py.File(ofn,  'w')  # 'w' - overwrite (we should have determined whether we want to overwrite in get_hdf5_filename())
+		# f = h5py.File(ofn,  'x')  # 'x' - no overwrite
 
-			acq_grp    = f.create_group('/Acquisition')              # /Acquisition
-			acq_grp.attrs['run_time'] = time.ctime()                                       # not legacy
-			scope_grp  = acq_grp.create_group('LeCroy_scope')        # /Acquisition/LeCroy_scope
-			header_grp = scope_grp.create_group('Headers')                                 # not legacy
+		#============================
+		# create HDF5 groups similar to those in the legacy format:
 
-			ctl_grp    = f.create_group('/Control')                  # /Control
-			pos_grp    = ctl_grp.create_group('Positions')           # /Control/Positions
+		acq_grp    = f.create_group('/Acquisition')              # /Acquisition
+		acq_grp.attrs['run_time'] = time.ctime()                                       # not legacy
+		scope_grp  = acq_grp.create_group('LeCroy_scope')        # /Acquisition/LeCroy_scope
+		header_grp = scope_grp.create_group('Headers')                                 # not legacy
 
-			meta_grp   = f.create_group('/Meta')                     # /Meta                not legacy
-			script_grp = meta_grp.create_group('Python')             # /Meta/Python
-			scriptfiles_grp = script_grp.create_group('Files')       # /Meta/Python/Files
+		ctl_grp    = f.create_group('/Control')                  # /Control
+		pos_grp    = ctl_grp.create_group('Positions')           # /Control/Positions
 
-			# in the /Meta/Python/Files group:
-			for src_file in src_files:
-				self.create_sourcefile_dataset(scriptfiles_grp, src_file)
+		meta_grp   = f.create_group('/Meta')                     # /Meta                not legacy
+		script_grp = meta_grp.create_group('Python')             # /Meta/Python
+		scriptfiles_grp = script_grp.create_group('Files')       # /Meta/Python/Files
 
-			# I don't know how to get this information from the scope:
-			scope_grp.create_dataset('LeCroy_scope_Setup_Arrray', data=numpy.array('Sorry, this is not included', dtype='S'))
+		# in the /Meta/Python/Files group:
+		for src_file in src_files:
+			self.create_sourcefile_dataset(scriptfiles_grp, src_file)
 
-			pos_ds = pos_grp.create_dataset('positions_setup_array', data=positions)
-			pos_ds.attrs['xpos'] = xpos                                                     # not legacy
-			pos_ds.attrs['ypos'] = ypos                                                     # not legacy
-			pos_ds.attrs['shotperpos'] = num_duplicate_shots                                # not legacy
+		# I don't know how to get this information from the scope:
+		scope_grp.create_dataset('LeCroy_scope_Setup_Arrray', data=numpy.array('Sorry, this is not included', dtype='S'))
 
-			# create the scope access object, and iterate over positions
-			with LeCroy_Scope(self.ip_addrs['scope'], verbose=False) as scope:
-				if not scope:
-					print('Scope not found at '+self.ip_addrs['scope'])      # I think we have raised an exception if this is the case, so we never get here
-					return
+		pos_ds = pos_grp.create_dataset('positions_setup_array', data=positions)
+		pos_ds.attrs['xpos'] = xpos                                                     # not legacy
+		pos_ds.attrs['ypos'] = ypos                                                     # not legacy                                                     # not legacy
 
-				scope_grp.attrs['ScopeType'] = scope.idn_string
+		# create the scope access object, and iterate over positions
+		with LeCroy_Scope(self.ip_addrs['scope'], verbose=False) as scope:
+			if not scope:
+				print('Scope not found at '+self.ip_addrs['scope'])      # I think we have raised an exception if this is the case, so we never get here
+				return
 
-				NPos = len(positions)
-				NTimes = scope.max_samples() # Scope somtimes return less sample than this
+			scope_grp.attrs['ScopeType'] = scope.idn_string
 
+			NPos = len(positions)
+			NTimes = scope.max_samples()
 
+			datasets = {}
+			hdr_data = {}
 
-				datasets = {}
-				hdr_data = {}
+			# create 4 default data sets, empty.  These will all be populated for compatibility with legacy format hdf5 files.
 
-				# create 4 default data sets, empty.  These will all be populated for compatibility with legacy format hdf5 files.
+			datasets['C1'] = scope_grp.create_dataset('Channel1', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+			datasets['C2'] = scope_grp.create_dataset('Channel2', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+			datasets['C3'] = scope_grp.create_dataset('Channel3', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+			datasets['C4'] = scope_grp.create_dataset('Channel4', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
 
-				# datasets['C1'] = scope_grp.create_dataset('Channel1', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
-				# datasets['C2'] = scope_grp.create_dataset('Channel2', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
-				# datasets['C3'] = scope_grp.create_dataset('Channel3', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
-				# datasets['C4'] = scope_grp.create_dataset('Channel4', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+			# create other datasets, one for each displayed trace (but not C1-4, which we just did)
+			# todo: should we maybe just ignore these?  or have a user option to include them?
 
-				# create other datasets, one for each displayed trace (but not C1-4, which we just did)
-				# todo: should we maybe just ignore these?  or have a user option to include them?
-
-				traces = scope.displayed_traces()
-				for tr in traces:
-					name = scope.expanded_name(tr)
-					# ds = scope_grp.create_dataset(name, (NPos,NTimes), chunks=(1,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
-					ds = scope_grp.create_dataset(name, shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+			traces = scope.displayed_traces()
+			for tr in traces:
+				name = scope.expanded_name(tr)
+				if tr not in ('C1','C2','C3','C4'):
+					ds = scope_grp.create_dataset(name, (NPos,NTimes), chunks=(1,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
 					datasets[tr] = ds
 
-				# For each trace we are storing, we will write one header per position (immediately after
-		       #    the data for that position has been acquired); these compress to an insignificant size
-				# For whatever stupid reason we need to write the header as a binary blob using an "HDF5 opaque" type - here void type 'V346'  (otherwise I could not manage to avoid invisible string processing and interpretation)
-				for tr in traces:
-					name = scope.expanded_name(tr)
-					hdr_data[tr] = header_grp.create_dataset(name, shape=(NPos,), dtype="V%i"%(WAVEDESC_SIZE), fletcher32=True, compression='gzip', compression_opts=9)  # V346 = void type, 346 bytes long
+			# For each trace we are storing, we will write one header per position (immediately after
+	       #    the data for that position has been acquired); these compress to an insignificant size
+			# For whatever stupid reason we need to write the header as a binary blob using an "HDF5 opaque" type - here void type 'V346'  (otherwise I could not manage to avoid invisible string processing and interpretation)
+			for tr in traces:
+				name = scope.expanded_name(tr)
+				hdr_data[tr] = header_grp.create_dataset(name, shape=(NPos,), dtype="V%i"%(WAVEDESC_SIZE), fletcher32=True, compression='gzip', compression_opts=9)  # V346 = void type, 346 bytes long
 
-				# create "time" dataset
-				time_ds = scope_grp.create_dataset('time', shape=(NTimes,), fletcher32=True, compression='gzip', compression_opts=9)
+			# create "time" dataset
+			time_ds = scope_grp.create_dataset('time', shape=(NTimes,), fletcher32=True, compression='gzip', compression_opts=9)
 
-				# at this point all datasets should be created, so we can
-				# switch to SWMR mode
-				#?# f.swmr_mode = True    # SWMR MODE: DO NOT CREATE ANY MORE DATASETS AFTER THIS
-				#?# check effects of flushing...see above
+			# at this point all datasets should be created, so we can
+			# switch to SWMR mode
+			#?# f.swmr_mode = True    # SWMR MODE: DO NOT CREATE ANY MORE DATASETS AFTER THIS
+			#?# check effects of flushing...see above
 
-				try:  # try-catch for Ctrl-C keyboard interrupt
+			try:  # try-catch for Ctrl-C keyboard interrupt
 
-					######### BEGIN MAIN ACQUISITION LOOP #########
-					print('starting acquisition loop at', time.ctime())
-					acquisition_loop_start_time = time.time()
+				######### BEGIN MAIN ACQUISITION LOOP #########
+				print('starting acquisition loop at', time.ctime())
+				acquisition_loop_start_time = time.time()
 
-					nowx, nowy = (-999, -999)
-					for pos in positions:
-						# prevent motor from enabling/disabling when taking data at the same position
-						# this stops the motor noise from being picked up by the data in between shots
-						if nowx!=pos[1] or nowy!=pos[2]:
-							# enable motor
-							mc.enable()
+				for pos in positions:
+					# move to next position
+					print('position index =', pos[0], '  x =', pos[1], '  y =', pos[2], end='')
+					mc.move_to_position(pos[1], pos[2])
+					self.signals.updated_position.emit(pos[1], pos[2])
+					x_encoder, y_encoder = mc.current_probe_position()
+					self.signals.updated_position.emit(x_encoder, y_encoder)
 
-							# move to next position
-							print('position index =', pos[0], '  x =', pos[1], '  y =', pos[2], end='\n')
-							mc.move_to_position(pos[1], pos[2])
-							self.signals.updated_position.emit(pos[1], pos[2])
-							nowx, nowy = (pos[1], pos[2])
-							x_encoder, y_encoder = mc.current_probe_position()
-							self.signals.updated_position.emit(x_encoder, y_encoder)
+					# Disable the motor current output when taking the data
+					mc.disable()
 
-							# Disable the motor current output when taking the data
-							mc.disable()
-
-
-						if pos[0] > 1:
-							print ('Estimated remaining time:%6.2f'%((len(positions) - pos[0]) * (time.time()-acquisition_loop_start_time)/pos[0] / 3600))
-						else:
-							print ('')
-
-						print('------------------', scope.gaaak_count, '-------------------- ',pos[0],sep='')
-
-		#				scope.autoscale('C3')  # for now can only _increase_ the V/div
-
-						# do averaging, and copy scope data for each trace on the screen to the output HDF5 file
-						self.acquire_displayed_traces(scope, datasets, hdr_data, pos[0]-1)   # argh the pos[0] index is 1-based
-
-						# Show plot traces on GUI
-						try:
-							scope.screen_dump()
-							self.signals.new_screen_dump.emit()
-						# except VisaIOError: #VisaIOError undefined?
-						# 	print ('Unable to grab screen due to VisaIOError')
-						# 	continue
-						except:
-							print ('Unable to grab screen due to unknown Error')
-							continue
-
-						self.signals.finished_position.emit(x_encoder, y_encoder)
-
-						# at least get one time array recorded for swmr functions
-						if pos[0] == 1:
-							time_ds[0:NTimes] = scope.time_array()[0:NTimes]
-							#time_ds.flush()
-
-					######### END MAIN ACQUISITION LOOP #########
-
-				except KeyboardInterrupt:
-					print('\n______Halted due to Ctrl-C______', '  at', time.ctime())
-
-				# copy the array of time values, corresponding to the last acquired trace, to the times_dataset
-				time_ds[0:NTimes] = scope.time_array()[0:NTimes]      # specify number of points, sometimes scope return extras
-				if type(time_ds) == 'stupid':
-					print(' this is only included to make the linter happy, otherwise it thinks time_ds is not used')
-
-				# Set any unused datasets to 0 (e.g. any C1-4 that was not acquired); when compressed they require negligible space
-				# Also add the text descriptions.    Do these together to be able to be able to make a note in the description
-				for tr in traces:
-					if datasets[tr].len() == 0:
-						datasets[tr] = numpy.zeros(shape=(NPos,NTimes))
-						datasets[tr].attrs['description'] = 'NOT RECORDED: ' + self.get_channel_description(tr)           # callback arg to the current function
-						datasets[tr].attrs['recorded']    = False
+					if pos[0] > 1:
+						print ('Estimated remaining time:%6.2f'%((len(positions) - pos[0]) * (time.time()-acquisition_loop_start_time)/pos[0] / 3600))
 					else:
-						datasets[tr].attrs['description'] = self.get_channel_description(tr)                              # callback arg to the current function
-						datasets[tr].attrs['recorded']    = True
-						datasets[tr].attrs['shots per position']    = self.pos_param["num_shots"]
+						print ('')
 
+					print('------------------', scope.gaaak_count, '-------------------- ',pos[0],sep='')
 
-			f.close()  # close the HDF5 file
+	#				scope.autoscale('C3')  # for now can only _increase_ the V/div
 
-			self.signals.finished.emit()
-			#done
+					# do averaging, and copy scope data for each trace on the screen to the output HDF5 file
+					self.acquire_displayed_traces(scope, datasets, hdr_data, pos[0]-1)   # argh the pos[0] index is 1-based
+
+					# Show plot traces on GUI
+					try:
+						scope.screen_dump()
+						self.signals.new_screen_dump.emit()
+					except VisaIOError:
+						print ('Unable to grab screen due to VisaIOError')
+						continue
+					except:
+						print ('Unable to grab screen due to unknown Error')
+						continue
+
+					self.signals.finished_position.emit(x_encoder, y_encoder)
+					mc.enable()
+
+					# at least get one time array recorded for swmr functions
+					if pos[0] == 1:
+						time_ds[0:NTimes] = scope.time_array()[0:NTimes]
+						#time_ds.flush()
+
+				######### END MAIN ACQUISITION LOOP #########
+
+			except KeyboardInterrupt:
+				print('\n______Halted due to Ctrl-C______', '  at', time.ctime())
+
+			# copy the array of time values, corresponding to the last acquired trace, to the times_dataset
+			time_ds[0:NTimes] = scope.time_array()[0:NTimes]      # specify number of points, sometimes scope return extras
+			if type(time_ds) == 'stupid':
+				print(' this is only included to make the linter happy, otherwise it thinks time_ds is not used')
+
+			# Set any unused datasets to 0 (e.g. any C1-4 that was not acquired); when compressed they require negligible space
+			# Also add the text descriptions.    Do these together to be able to be able to make a note in the description
+			for tr in traces:
+				if datasets[tr].len() == 0:
+					datasets[tr] = numpy.zeros(shape=(NPos,NTimes))
+					datasets[tr].attrs['description'] = 'NOT RECORDED: ' + self.get_channel_description(tr)           # callback arg to the current function
+					datasets[tr].attrs['recorded']    = False
+				else:
+					datasets[tr].attrs['description'] = self.get_channel_description(tr)                              # callback arg to the current function
+					datasets[tr].attrs['recorded']    = True
+
+		f.close()  # close the HDF5 file
+
+		self.signals.finished.emit()
+		#done
 
 
 
@@ -844,6 +763,7 @@ class Test_Shot_Thread(QRunnable):
 
 class Window(QWidget):
 
+
 	def __init__(self):
 		super(Window, self).__init__()
 
@@ -851,18 +771,12 @@ class Window(QWidget):
 		self.canvas = MyMplCanvas()
 		self.ac = Acquisition_Controls()
 		self.axc = Axis_Controls()
-		self.sv = Software_Version()
 		self.sc = Scope_Channel()
-		self.x_ip = "192.168.0.70"
-		self.y_ip = "192.168.0.80"
+		self.x_ip = "192.168.0.50"
+		self.y_ip = "192.168.0.40"
 		self.scope_ip = "192.168.0.60"
-		#self.scope_ip = "192.168.7.26"
 		self.port_ip = int(7776)
 		self.mm = Motor_Movement(x_ip_addr = self.x_ip, y_ip_addr = self.y_ip, MOTOR_PORT = self.port_ip)
-		self.mm.set_input_usage(3)
-		self.mm.set_steps_per_rev(20000, 20000)
-
-
 
 		self.axc.xupInput.valueChanged.connect(self.axis_change)
 		self.axc.yupInput.valueChanged.connect(self.axis_change)
@@ -881,16 +795,15 @@ class Window(QWidget):
 
 		layout = QGridLayout()
 		layout.addWidget(self.canvas, 0, 0, 1, 2)
-		layout.addWidget(self.axc, 1, 0, 1, 2)			#axes control
-		layout.addWidget(self.mm, 2, 0, 2, 1)					#motor movement
-		layout.addWidget(self.pc, 2, 1, 2, 1)					#position control
-		layout.addWidget(self.ac, 2, 2)					#acquisition control
-		layout.addWidget(self.sc, 2, 3, 2, 1)					#scope channel comments
-		layout.addWidget(self.sv, 3, 2)
+		layout.addWidget(self.axc, 1, 0, 1, 2)
+		layout.addWidget(self.mm, 2, 0)
+		layout.addWidget(self.pc, 2, 1)
+		layout.addWidget(self.ac, 2, 2)
+		layout.addWidget(self.sc, 2, 3)
 		layout.addWidget(self.ScopeScreen, 0, 2 , 2, 2)
 		self.setLayout(layout)
 
-		self.setWindowTitle("180E Data Acquisition System for XY Probe Drives")
+		self.setWindowTitle("Data Acquisition")
 		self.resize(1600, 700)
 
 		self.threadpool = QThreadPool()
@@ -939,7 +852,6 @@ class Window(QWidget):
 
 	def update_screen_dump(self):
 		self.pixmap = QPixmap("scope_screen_dump.png")
-		#self.pixmapscaled = self.pixmap.scaledToHeight(800) #Rescale the picture to fit the screen. However this makes the picture from a HD scope blurry.
 		self.ScopeScreen.setPixmap(self.pixmap)
 
 	def mark_finished_positions(self, x, y):
@@ -995,8 +907,6 @@ class Window(QWidget):
 		self.hdf5_filename = None
 
 		self.pos_param = self.update_parameters()
-		self.pos_param["num_shots"] = self.ac.num_shots.value()
-		self.pos_param["num_run"] = self.ac.num_run.value()
 
 		self.channel_description = self.update_channel_information()
 
@@ -1006,59 +916,39 @@ class Window(QWidget):
 		self.ip_addrs['scope'] = self.scope_ip
 
 		self.data_run = Data_Run_Thread(self.hdf5_filename, self.pos_param, self.channel_description, self.ip_addrs)
-		self.freeze_all_controls()
+		global data_running
+		data_running = True
 		self.data_run.signals.finished.connect(self.data_run_finished)
-		self.data_run.signals.cancel.connect(self.acquisition_canceled)
 		self.data_run.signals.updated_position.connect(self.update_current_position_during_data_run)
 		self.data_run.signals.finished_position.connect(self.mark_finished_positions)
 		self.data_run.signals.new_screen_dump.connect(self.update_screen_dump)
+		self.pc.setEnabled(False)
+		self.ac.setEnabled(False)
+		self.sc.setEnabled(False)
+		self.mm.setEnabled(False)
 		self.threadpool.start(self.data_run)
 
-	def acquisition_canceled(self):
-		QMessageBox.about(self, "Acquisition Status", "Data acquisition cancelled.")
-		self.enable_all_controls()
-
-
 	def data_run_finished(self):
-		QMessageBox.about(self, "Acquisition Status", "Data acquisition complete.")
-		self.enable_all_controls()
+		QMessageBox.about(self, "Done", "Data Acquisition is finished.")
+		global data_running
+		data_running = False
+		self.pc.setEnabled(True)
+		self.ac.setEnabled(True)
+		self.sc.setEnabled(True)
+		self.mm.setEnabled(True)
 		self.canvas.visited_points.remove()
 		self.canvas.initialize_visited_points()
 		# self.canvas.finished_x = []
 		# self.canvas.finished_y = []
 
 	def test_shot_finished(self):
-		QMessageBox.about(self, "Take Test Shot", "Test shot is finished.")
-		self.enable_all_controls()
-		# global data_running
-		# data_running = False
-		# self.pc.setEnabled(True)
-		# self.ac.setEnabled(True)
-		# self.sc.setEnabled(True)
-		# self.mm.setEnabled(True)
-
-	def freeze_all_controls(self):
-		global data_running
-		data_running = True
-		self.pc.setEnabled(False)
-		self.ac.setEnabled(False)
-		self.sc.setEnabled(False)
-		self.mm.MoveButton.setEnabled(False)
-		self.mm.SetZero.setEnabled(False)
-		self.mm.SetVelocity.setEnabled(False)
-		self.mm.velocityButton.setEnabled(False)
-
-	def enable_all_controls(self):
+		QMessageBox.about(self, "Done", "Test shot is finished.")
 		global data_running
 		data_running = False
 		self.pc.setEnabled(True)
 		self.ac.setEnabled(True)
 		self.sc.setEnabled(True)
-		self.mm.MoveButton.setEnabled(True)
-		self.mm.SetZero.setEnabled(True)
-		self.mm.SetVelocity.setEnabled(True)
-		self.mm.velocityButton.setEnabled(True)
-
+		self.mm.setEnabled(True)
 
 	def start_test_shot(self):
 		self.ip_addrs = {}
@@ -1067,7 +957,6 @@ class Window(QWidget):
 		self.test_shot.signals.finished.connect(self.test_shot_finished)
 		self.test_shot.signals.new_screen_dump.connect(self.update_screen_dump)
 		self.threadpool.start(self.test_shot)
-
 
 	def fileQuit(self):
 		self.close()

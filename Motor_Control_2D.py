@@ -27,7 +27,6 @@ class Motor_Control_2D:
 		self.steps_per_cm = 31532.0
 		self.steps_per_degree = 33333.0
 
-		self.motor_moving = False
 
 
 
@@ -38,9 +37,6 @@ class Motor_Control_2D:
 		y_step = self.degree_to_steps(y_pos)
 		self.x_mc.set_position(x_step)
 		self.y_mc.set_position(y_step)
-		self.motor_moving = True
-		self.wait_for_motion_complete()
-
 
 #--------------------------------------------------------------------------------------------------
 
@@ -101,6 +97,12 @@ class Motor_Control_2D:
 
 #-------------------------------------------------------------------------------------------
 
+	def check_status(self):
+
+		x_stat = self.x_mc.check_status()
+		y_stat = self.y_mc.check_status()
+
+		return x_stat, y_stat
 
 	def wait_for_motion_complete(self):
 
@@ -125,7 +127,7 @@ class Motor_Control_2D:
 				break
 			elif time.time() > timeout:
 				raise TimeoutError("Motor has been moving for over 5min???")
-		self.motor_moving = False
+
 		print ("Motor stopped")
 
 
@@ -137,13 +139,16 @@ class Motor_Control_2D:
 		self.y_mc.inhibit()
 
 	def enable(self):
-		self.x_mc.enable()
+		#self.x_mc.enable()
 		self.y_mc.enable()
 
 	def set_input_usage(self, usage):
 		self.x_mc.set_input_usage(usage)
 		#self.y_mc.set_input_usage(usage)
 
+	def clear_alarm(self):
+		self.x_mc.clear_alarm()
+		self.y_mc.clear_alarm()
 
 
 ########################################################################################################

@@ -29,7 +29,7 @@ class Motor_Control_2D:
 
 		self.motor_moving = False
 
-		self.d_outside = 75.0 #cm distance from the ball valve to the motor's motion channel
+		self.d_outside = 71.0 #cm distance from the ball valve to the motor's motion channel
 		self.d_inside = 35.5 #cm distance from the ball valve to the center of the chamber (0,0) point
 
 
@@ -42,24 +42,16 @@ class Motor_Control_2D:
 	# Translate the input cartesian positions to motor positions. Here the distance from the ball valve to
 	# the motor's motion channel is 29.5 inch (75cm), and the distance from the ball valve to the center of
 	# the chamber (0,0) is approximately 14 inch (35.5cm)
-	# def translate_to_motor_coordinate(self, dx, dy): #dx, dy is the user input coordinate. mx, my is the motor coordinate.
-	# 	if dy == 0:
-	# 		my = 0.0
-	# 		mx = dx
-	# 	else:
-	# 		my = self.d_outside * dy / ( dx + self.d_inside)
-	# 		mx = dy * numpy.sqrt(my**2 + self.d_outside**2) / my - self.d_inside
-	# 	print('for test: move to motor coordinate', mx, my)
-	# 	return mx, my
-    #
-	# def translate_to_user_coordinate(self, mx, my):
-	# 	if my == 0:
-	# 	    dy = 0.0
-	# 	    dx = mx
-	# 	else:
-	# 	    dy = (mx + self.d_inside) * my / numpy.sqrt(my**2 + self.d_outside**2)
-	# 	    dx = self.d_outside * dy / my - self.d_inside
-	# 	return dx, dy
+	def translate_to_motor_coordinate(self, dx, dy): #dx, dy is the user input coordinate. mx, my is the motor coordinate.
+		my = self.d_outside * dy / (dx + self.d_inside)
+		mx = numpy.sqrt(dy**2 + (dx + self.d_inside)**2) - self.d_inside
+		print('for test: move to motor coordinate', mx, my)
+		return mx, my
+
+	def translate_to_user_coordinate(self, mx, my):
+		dx = numpy.sqrt((mx + self.d_inside)**2 / ((my / self.d_outside)**2 + 1)) - self.d_inside
+		dy = my * (dx + self.d_inside) / self.d_outside
+		return dx, dy
 
 	def move_to_position(self, x_pos, y_pos):
 		# Directly move the motor to their absolute position
@@ -174,6 +166,10 @@ class Motor_Control_2D:
 	def set_input_usage(self, usage):
 		self.x_mc.set_input_usage(usage)
 		self.y_mc.set_input_usage(usage)
+
+	def sdsdsdsds(self):
+		self.x_mc.sdsdsdsds()
+		self.y_mc.sdsdsdsds()	
 
 
 

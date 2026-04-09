@@ -10,7 +10,6 @@
 # Author: Yuchen Qian
 # Oct 2017
 #
-19
 
 import numpy
 import math
@@ -19,7 +18,7 @@ import os
 import os.path
 import time
 import datetime
-from Motor_Control_2D_xy import Motor_Control_2D
+from Motor_Control_2D import Motor_Control_2D
 from LeCroy_Scope import LeCroy_Scope, WAVEDESC_SIZE
 from LeCroy_Scope import EXPANDED_TRACE_NAMES
 import tkinter
@@ -28,7 +27,7 @@ import tkinter.messagebox
 import h5py as h5py
 
 dir_path=os.path.dirname(os.path.realpath(__file__))
-version_number="03/01/2018 12:37pm"			# update this when a change has been made
+version_number="02/24/2018 1:33pm"			# update this when a change has been made
 
 from PyQt5 import QtCore
 # from PyQt5.QtWidgets import (QApplication, QBoxLayout, QCheckBox, QComboBox,
@@ -55,8 +54,8 @@ class MyMplCanvas(FigureCanvas):
 	def __init__(self, parent=None, width=6, height=3, dpi=100):
 		fig = Figure(figsize=(width, height), dpi=dpi)
 		self.ax = fig.add_subplot(111)
-		self.ax.set_xlim(-25, 25)
-		self.ax.set_ylim(-25, 25)
+		self.ax.set_xlim(-35, 35)
+		self.ax.set_ylim(-35, 35)
 
 		FigureCanvas.__init__(self, fig)
 		self.setParent(parent)
@@ -129,18 +128,18 @@ class Axis_Controls(QGroupBox):
 		self.xlowInput = QSpinBox()
 		self.ylowInput = QSpinBox()
 
-		self.xupInput.setRange(-60, 60)
+		self.xupInput.setRange(-70, 0)
 		self.yupInput.setRange(-60, 60)
-		self.xlowInput.setRange(-60, 60)
+		self.xlowInput.setRange(-70, 0)
 		self.ylowInput.setRange(-60, 60)
 
-		self.xupInput.setValue(25)
-		self.yupInput.setValue(25)
-		self.xlowInput.setValue(-25)
-		self.ylowInput.setValue(-25)
+		self.xupInput.setValue(35)
+		self.yupInput.setValue(35)
+		self.xlowInput.setValue(-35)
+		self.ylowInput.setValue(-35)
 
-		self.xaxisLabel = QLabel("x axis range:")
-		self.yaxisLabel = QLabel("y axis range:")
+		self.xaxisLabel = QLabel("z axis range:")
+		self.yaxisLabel = QLabel("θ axis range:")
 		self.toLabel = QLabel("to")
 		self.toLabel2 = QLabel("to")
 		self.blankLabel = QLabel("  ")
@@ -168,12 +167,12 @@ class Position_Controls(QGroupBox):
 		super().__init__()
 		self.setTitle("Set up DAQ position")
 
-		self.xMaxLabel = QLabel("Max x:")
-		self.xMinLabel = QLabel("Min x:")
-		self.yMaxLabel = QLabel("Max y:")
-		self.yMinLabel = QLabel("Min y:")
-		self.nxLabel = QLabel("nx:")
-		self.nyLabel = QLabel("ny:")
+		self.xMaxLabel = QLabel("Max z:")
+		self.xMinLabel = QLabel("Min z:")
+		self.yMaxLabel = QLabel("Max θ:")
+		self.yMinLabel = QLabel("Min θ:")
+		self.nxLabel = QLabel("nz:")
+		self.nyLabel = QLabel("nθ:")
 
 		#valueLabel = QLabel("Current value:")
 
@@ -242,24 +241,11 @@ class Acquisition_Controls(QGroupBox):
 	def __init__(self):
 		super().__init__()
 		self.DataRun = QPushButton("Start Data Acquisition", self)
-		self.TestShot = QPushButton("Take Single Test Shot", self)
-		self.num_run = QSpinBox()
-		self.num_shots = QSpinBox()
-		self.num_run_label = QLabel("Number of total runs:")
-		self.num_shots_label = QLabel("Shots per position:")
-
-		self.num_run.setRange(1, 100)
-		self.num_shots.setRange(1, 200)
-		self.num_run.setValue(1)
-		self.num_shots.setValue(1)
+		self.TestShot = QPushButton("Take Test Shot", self)
 
 		ACLayout = QGridLayout()
 		ACLayout.addWidget(self.DataRun, 0, 0)
 		ACLayout.addWidget(self.TestShot, 0, 1)
-		ACLayout.addWidget(self.num_run_label, 1, 0)
-		ACLayout.addWidget(self.num_shots_label, 2, 0)
-		ACLayout.addWidget(self.num_run, 1, 1)
-		ACLayout.addWidget(self.num_shots, 2, 1)
 
 		self.setLayout(ACLayout)
 
@@ -279,8 +265,8 @@ class Motor_Movement(QGroupBox):
 		self.MOTOR_PORT = MOTOR_PORT
 
 		# (cm) Move probe to absolute position along the shaft counted by motor encoder
-		self.xMoveLabel = QLabel("Move x motor to:")
-		self.yMoveLabel = QLabel("Move y motor to:")
+		self.xMoveLabel = QLabel("Move z motor to:")
+		self.yMoveLabel = QLabel("Move θ motor to:")
 		self.xMoveInput = QLineEdit()
 		self.yMoveInput = QLineEdit()
 
@@ -288,22 +274,22 @@ class Motor_Movement(QGroupBox):
 		# this should be done by calling "move_to_position" function in Motor_Control_3D, with corresponding geometry calculation
 
 		# Set velocity.
-		self.xvLabel = QLabel("Set x velocity:")
-		self.yvLabel = QLabel("Set y velocity:")
+		self.xvLabel = QLabel("Set z velocity:")
+		self.yvLabel = QLabel("Set θ velocity:")
 		self.xvInput = QLineEdit()
 		self.yvInput = QLineEdit()
 
 
 		self.MoveButton     = QPushButton("Move Motor", self)
-		self.StopNowButton  = QPushButton("BUG (Don't click)", self)
-		self.SetZero        = QPushButton("Set Zero (Don't click or get an F)", self)
+		self.StopNowButton  = QPushButton("BUG don't click", self)
+		self.SetZero        = QPushButton("Set Zero", self)
 		self.SetVelocity = QPushButton("Set Velocity", self)
 		self.MoveButton.clicked.connect(self.move_to_position)
 		self.StopNowButton.clicked.connect(self.stop_now)
 		self.SetZero.clicked.connect(self.zero)
 		self.SetVelocity.clicked.connect(self.set_velocity)
 
-		self.CurposLabel = QLabel("Current probe position (cm, cm):")
+		self.CurposLabel = QLabel("Current probe position (cm, deg):")
 		self.CurposInput = QLineEdit(readOnly = True)
 		self.velocityButton = QPushButton("Get motor speed (rpm):")
 		self.velocityInput = QLineEdit(readOnly = True)
@@ -332,8 +318,6 @@ class Motor_Movement(QGroupBox):
 
 		self.mc = Motor_Control_2D(x_ip_addr = self.x_ip_addr, y_ip_addr = self.y_ip_addr)
 
-		self.mc.sdsdsdsds()
-
 #----------------------------------------------------------------------
 
 	def move_to_position(self):
@@ -341,14 +325,13 @@ class Motor_Movement(QGroupBox):
 		try:
 			x_pos = float(self.xMoveInput.text())
 			y_pos = float(self.yMoveInput.text())
-			self.mc.enable()
 			self.mc.move_to_position(x_pos, y_pos)
-			self.mc.disable()
 		except ValueError:
 			QMessageBox.about(self, "Error", "Position should be valid numbers.")
 
-	def disable():
-		self.mc.disable()
+	# def wait_for_motion_complete(self):
+	# 	self.mc.wait_for_motion_complete()
+
 
 	def stop_now(self):
 		# Stop motor movement now
@@ -383,9 +366,6 @@ class Motor_Movement(QGroupBox):
 
 	def set_input_usage(self, usage):
 		self.mc.set_input_usage(usage)
-
-	def set_steps_per_rev(self, stepsx, stepsy):
-		self.mc.set_steps_per_rev(stepsx, stepsy)
 
 
 
@@ -480,7 +460,6 @@ class Data_Run_Thread(QRunnable):
 		return '**** get_channel_description(): unknown trace indicator "'+tr+'". How did we get here?'
 
 
-
 	def get_positions(self) -> ([(),(),(),()], numpy.array, numpy.array, numpy.array):
 		""" callback function to return the positions array
 			This function is baroque because we need to to match the legacy format:
@@ -497,8 +476,8 @@ class Data_Run_Thread(QRunnable):
 		xpos = numpy.linspace(xmin,xmax,nx)
 		ypos = numpy.linspace(ymin,ymax,ny)
 
-		num_duplicate_shots = self.pos_param["num_shots"]       # number of duplicate shots recorded at the ith location
-		num_run_repeats = self.pos_param["num_run"]           # number of times to repeat sequentially over all locations
+		num_duplicate_shots = 1       # number of duplicate shots recorded at the ith location
+		num_run_repeats = 1           # number of times to repeat sequentially over all locations
 
 		# allocate the positions array, fill it with zeros
 		positions = numpy.zeros((nx*ny*num_duplicate_shots*num_run_repeats), dtype=[('Line_number', '>u4'), ('x', '>f4'), ('y', '>f4')])
@@ -514,7 +493,7 @@ class Data_Run_Thread(QRunnable):
 
 		# print(positions)       # for debugging
 
-		return positions, xpos, ypos, num_duplicate_shots
+		return positions, xpos, ypos
 
 	def get_hdf5_filename(self) -> str:
 
@@ -559,10 +538,6 @@ class Data_Run_Thread(QRunnable):
 				#?# datasets[tr].flush()
 			except KeyError:
 				print(tr + ' is displayed on the scope but not recorded. To record this channel, please display the trace before starting the data run.')
-				continue
-			except TypeError:
-				print('Not enough points from scope trace')
-				datasets[tr][pos_ndx,:] = scope.acquire(tr)[:]
 				continue
 
 		for tr in traces:
@@ -613,7 +588,7 @@ class Data_Run_Thread(QRunnable):
 		thispath = os.path.realpath(__file__)
 		src_files = [thispath,           # ASSUME this file is in the same directory as the next two:
 					os.path.dirname(thispath)+os.sep+'LeCroy_Scope.py',
-					os.path.dirname(thispath)+os.sep+'Motor_Control_2D_xy.py'
+					os.path.dirname(thispath)+os.sep+'Motor_Control_2D.py'
 				   ]
 		#for testing, list these:s
 		print('Files to record in the hdf5 archive:')
@@ -622,8 +597,8 @@ class Data_Run_Thread(QRunnable):
 		print('    motor control file =', src_files[2])
 
 		#============================
-		# position array given by Data_Run_GUI_xy.py:
-		positions, xpos, ypos, num_duplicate_shots = self.get_positions()
+		# position array given by Data_Run_GUI_2D.py:
+		positions, xpos, ypos = self.get_positions()
 
 		# Create empty position arrays
 		if xpos is None:
@@ -672,8 +647,7 @@ class Data_Run_Thread(QRunnable):
 
 			pos_ds = pos_grp.create_dataset('positions_setup_array', data=positions)
 			pos_ds.attrs['xpos'] = xpos                                                     # not legacy
-			pos_ds.attrs['ypos'] = ypos                                                     # not legacy
-			pos_ds.attrs['shotperpos'] = num_duplicate_shots                                # not legacy
+			pos_ds.attrs['ypos'] = ypos                                                     # not legacy                                                     # not legacy
 
 			# create the scope access object, and iterate over positions
 			with LeCroy_Scope(self.ip_addrs['scope'], verbose=False) as scope:
@@ -684,19 +658,17 @@ class Data_Run_Thread(QRunnable):
 				scope_grp.attrs['ScopeType'] = scope.idn_string
 
 				NPos = len(positions)
-				NTimes = scope.max_samples() # Scope somtimes return less sample than this
-
-
+				NTimes = scope.max_samples()
 
 				datasets = {}
 				hdr_data = {}
 
 				# create 4 default data sets, empty.  These will all be populated for compatibility with legacy format hdf5 files.
 
-				# datasets['C1'] = scope_grp.create_dataset('Channel1', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
-				# datasets['C2'] = scope_grp.create_dataset('Channel2', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
-				# datasets['C3'] = scope_grp.create_dataset('Channel3', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
-				# datasets['C4'] = scope_grp.create_dataset('Channel4', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+				datasets['C1'] = scope_grp.create_dataset('Channel1', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+				datasets['C2'] = scope_grp.create_dataset('Channel2', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+				datasets['C3'] = scope_grp.create_dataset('Channel3', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+				datasets['C4'] = scope_grp.create_dataset('Channel4', shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
 
 				# create other datasets, one for each displayed trace (but not C1-4, which we just did)
 				# todo: should we maybe just ignore these?  or have a user option to include them?
@@ -704,9 +676,9 @@ class Data_Run_Thread(QRunnable):
 				traces = scope.displayed_traces()
 				for tr in traces:
 					name = scope.expanded_name(tr)
-					# ds = scope_grp.create_dataset(name, (NPos,NTimes), chunks=(1,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
-					ds = scope_grp.create_dataset(name, shape=(NPos,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
-					datasets[tr] = ds
+					if tr not in ('C1','C2','C3','C4'):
+						ds = scope_grp.create_dataset(name, (NPos,NTimes), chunks=(1,NTimes), fletcher32=True, compression='gzip', compression_opts=9)
+						datasets[tr] = ds
 
 				# For each trace we are storing, we will write one header per position (immediately after
 		       #    the data for that position has been acquired); these compress to an insignificant size
@@ -729,25 +701,17 @@ class Data_Run_Thread(QRunnable):
 					print('starting acquisition loop at', time.ctime())
 					acquisition_loop_start_time = time.time()
 
-					nowx, nowy = (-999, -999)
 					for pos in positions:
-						# prevent motor from enabling/disabling when taking data at the same position
-						# this stops the motor noise from being picked up by the data in between shots
-						if nowx!=pos[1] or nowy!=pos[2]:
-							# enable motor
-							mc.enable()
+						# move to next position
+						print('position index =', pos[0], '  x =', pos[1], '  y =', pos[2], end='')
+						mc.move_to_position(pos[1], pos[2])
+						#mc.wait_for_motion_complete()
+						self.signals.updated_position.emit(pos[1], pos[2])
+						x_encoder, y_encoder = mc.current_probe_position()
+						self.signals.updated_position.emit(x_encoder, y_encoder)
 
-							# move to next position
-							print('position index =', pos[0], '  x =', pos[1], '  y =', pos[2], end='\n')
-							mc.move_to_position(pos[1], pos[2])
-							self.signals.updated_position.emit(pos[1], pos[2])
-							nowx, nowy = (pos[1], pos[2])
-							x_encoder, y_encoder = mc.current_probe_position()
-							self.signals.updated_position.emit(x_encoder, y_encoder)
-
-							# Disable the motor current output when taking the data
-							mc.disable()
-
+						# Disable the motor current output when taking the data
+						mc.disable()
 
 						if pos[0] > 1:
 							print ('Estimated remaining time:%6.2f'%((len(positions) - pos[0]) * (time.time()-acquisition_loop_start_time)/pos[0] / 3600))
@@ -773,6 +737,7 @@ class Data_Run_Thread(QRunnable):
 							continue
 
 						self.signals.finished_position.emit(x_encoder, y_encoder)
+						mc.enable()
 
 						# at least get one time array recorded for swmr functions
 						if pos[0] == 1:
@@ -799,8 +764,6 @@ class Data_Run_Thread(QRunnable):
 					else:
 						datasets[tr].attrs['description'] = self.get_channel_description(tr)                              # callback arg to the current function
 						datasets[tr].attrs['recorded']    = True
-						datasets[tr].attrs['shots per position']    = self.pos_param["num_shots"]
-
 
 			f.close()  # close the HDF5 file
 
@@ -818,7 +781,7 @@ class Test_Shot_Thread(QRunnable):
 
 	def acquire_displayed_traces(self, scope):
 		""" worker for below :
-			acquire enough sweeps for the averaging, then read displayed scope trace data into HDF5 datasets
+			acquire enough sweeps for the averaging, then display the screen shot to the GUI interface
 		"""
 		timeout = 2000 # seconds
 		timed_out, N = scope.wait_for_max_sweeps('Test shot: ', timeout)  # leaves scope not triggering
@@ -853,16 +816,12 @@ class Window(QWidget):
 		self.axc = Axis_Controls()
 		self.sv = Software_Version()
 		self.sc = Scope_Channel()
-		self.x_ip = "192.168.0.70"
-		self.y_ip = "192.168.0.80"
+		self.x_ip = "192.168.0.50"
+		self.y_ip = "192.168.0.40"
 		self.scope_ip = "192.168.0.60"
-		#self.scope_ip = "192.168.7.26"
 		self.port_ip = int(7776)
 		self.mm = Motor_Movement(x_ip_addr = self.x_ip, y_ip_addr = self.y_ip, MOTOR_PORT = self.port_ip)
-		self.mm.set_input_usage(3)
-		self.mm.set_steps_per_rev(20000, 20000)
-
-
+		self.mm.set_input_usage(2)
 
 		self.axc.xupInput.valueChanged.connect(self.axis_change)
 		self.axc.yupInput.valueChanged.connect(self.axis_change)
@@ -890,7 +849,7 @@ class Window(QWidget):
 		layout.addWidget(self.ScopeScreen, 0, 2 , 2, 2)
 		self.setLayout(layout)
 
-		self.setWindowTitle("180E Data Acquisition System for XY Probe Drives")
+		self.setWindowTitle("180E Data Acquisition System for Z-Theta Probe drives")
 		self.resize(1600, 700)
 
 		self.threadpool = QThreadPool()
@@ -939,7 +898,6 @@ class Window(QWidget):
 
 	def update_screen_dump(self):
 		self.pixmap = QPixmap("scope_screen_dump.png")
-		#self.pixmapscaled = self.pixmap.scaledToHeight(800) #Rescale the picture to fit the screen. However this makes the picture from a HD scope blurry.
 		self.ScopeScreen.setPixmap(self.pixmap)
 
 	def mark_finished_positions(self, x, y):
@@ -995,8 +953,6 @@ class Window(QWidget):
 		self.hdf5_filename = None
 
 		self.pos_param = self.update_parameters()
-		self.pos_param["num_shots"] = self.ac.num_shots.value()
-		self.pos_param["num_run"] = self.ac.num_run.value()
 
 		self.channel_description = self.update_channel_information()
 

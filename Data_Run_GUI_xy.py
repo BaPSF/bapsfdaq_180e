@@ -802,12 +802,9 @@ class Data_Run_Thread(QRunnable):
 						datasets[tr].attrs['recorded']    = True
 						datasets[tr].attrs['shots per position']    = self.pos_param["num_shots"]
 
-
 			f.close()  # close the HDF5 file
 
 			self.signals.finished.emit()
-			#done
-
 
 
 class Test_Shot_Thread(QRunnable):

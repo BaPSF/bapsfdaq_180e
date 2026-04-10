@@ -554,17 +554,31 @@ class Data_Run_Thread(QRunnable):
 		traces = scope.displayed_traces()
 
 		for tr in traces:
+			NPos, NTimes = datasets[tr].shape
+			signal = scope.acquire(tr)  # type: numpy.ndarray
 			try:
-				NPos,NTimes = datasets[tr].shape
-				datasets[tr][pos_ndx,0:NTimes] = scope.acquire(tr)[0:NTimes]    # sometimes for 10000 the scope hardware returns 10001 samples, so we have to specify [0:NTimes]
-				#?# datasets[tr].flush()
-			except KeyError:
-				print(tr + ' is displayed on the scope but not recorded. To record this channel, please display the trace before starting the data run.')
-				continue
-			except TypeError:
-				print('Not enough points from scope trace')
-				datasets[tr][pos_ndx,:] = scope.acquire(tr)[:]
-				continue
+				datasets[tr][pos_ndx, ...] = signal[...]
+			except KeyError as err:
+				print(
+					tr
+					+ ' is displayed on the scope but not recorded.  '
+					  'To record this channel, please display the trace '
+					  'before starting the data run.'
+					+ err
+				)
+			except TypeError as err:
+				# the returned signal does not always have exactly NTimes
+				# samples.  It's is off by a few data points.
+				signal_NTimes = signal.size
+				if not numpy.isclose(signal_NTimes, NTimes, rtol=0.005, atol=0):
+					# the difference in the number of time samples is greater
+					# than 0.5%
+					raise err
+
+				if NTimes > signal_NTimes:
+					datasets[tr][pos_ndx, 0:signal_NTimes] = signal[...]
+				else:
+					datasets[tr][pos_ndx, ...] = signal[0:NTimes]
 
 		for tr in traces:
 			try:
@@ -572,7 +586,7 @@ class Data_Run_Thread(QRunnable):
 				#?# hdr_data[tr].flush()
 				#?# are there consequences in timing or compression size if we do the flush()s recommend for the SWMR function?
 			except KeyError:
-				continue
+				pass
 
 		scope.set_trigger_mode('NORM')   # resume triggering
 

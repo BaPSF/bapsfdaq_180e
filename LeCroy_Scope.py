@@ -32,16 +32,17 @@ NI VISA Manuals:
 
 """
 
-import numpy
-import visa
-from pyvisa.resources import MessageBasedResource
-from pyvisa.errors import VisaIOError
 import collections
+import numpy
+import matplotlib.image as mpimg
+import pylab as plt
+import pyvisa as visa
 import struct
 import sys
-import pylab as plt
-import matplotlib.image as mpimg
 import time
+
+from pyvisa.resources import MessageBasedResource
+from pyvisa.errors import VisaIOError
 
 # the header recorded for each trace
 # 63 entries, 346 bytes

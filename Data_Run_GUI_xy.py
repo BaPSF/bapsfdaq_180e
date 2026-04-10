@@ -675,7 +675,7 @@ class Data_Run_Thread(QRunnable):
 			pos_ds.attrs['shotperpos'] = num_duplicate_shots                                # not legacy
 
 			# create the scope access object, and iterate over positions
-			with LeCroy_Scope(self.ip_addrs['scope'], verbose=False) as scope:
+			with LeCroy_Scope(self.ip_addrs['scope'], verbose=False) as scope:  # type: LeCroy_Scope
 				if not scope:
 					print('Scope not found at '+self.ip_addrs['scope'])      # I think we have raised an exception if this is the case, so we never get here
 					return

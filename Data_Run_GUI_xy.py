@@ -10,7 +10,6 @@
 # Author: Yuchen Qian
 # Oct 2017
 #
-19
 
 import numpy
 import math

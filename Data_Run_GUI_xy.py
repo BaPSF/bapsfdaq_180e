@@ -11,20 +11,22 @@
 # Oct 2017
 #
 
-import numpy
+import datetime
+import h5py
 import math
-import sys
+import numpy
 import os
 import os.path
+import sys
 import time
-import datetime
-from Motor_Control_2D_xy import Motor_Control_2D
+import tkinter
+import tkinter.messagebox
+
+from tkinter import filedialog
+
 from LeCroy_Scope import LeCroy_Scope, WAVEDESC_SIZE
 from LeCroy_Scope import EXPANDED_TRACE_NAMES
-import tkinter
-from tkinter import filedialog
-import tkinter.messagebox
-import h5py as h5py
+from Motor_Control_2D_xy import Motor_Control_2D
 
 dir_path=os.path.dirname(os.path.realpath(__file__))
 version_number="03/01/2018 12:37pm"			# update this when a change has been made

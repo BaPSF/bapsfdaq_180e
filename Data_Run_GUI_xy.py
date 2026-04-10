@@ -541,7 +541,7 @@ class Data_Run_Thread(QRunnable):
 		self.hdf5_filename = fn    # save it for later
 		return fn
 
-	def acquire_displayed_traces(self, scope, datasets, hdr_data, pos_ndx):
+	def acquire_displayed_traces(self, scope: LeCroy_Scope, datasets, hdr_data, pos_ndx):
 		""" worker for below :
 			acquire enough sweeps for the averaging, then read displayed scope trace data into HDF5 datasets
 		"""

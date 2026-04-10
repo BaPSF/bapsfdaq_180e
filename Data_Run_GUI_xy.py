@@ -791,16 +791,51 @@ class Data_Run_Thread(QRunnable):
 
 						# at least get one time array recorded for swmr functions
 						if pos[0] == 1:
-							time_ds[0:NTimes] = scope.time_array()[0:NTimes]
-							#time_ds.flush()
+							time_array = scope.time_array()
+							try:
+								time_ds[...] = scope.time_array()[...]
+							except TypeError as err:
+								# the returned signal does not always have exactly NTimes
+								# samples.  It's is off by a few data points.
+								time_size = time_array.size
+								if not numpy.isclose(
+									time_size, NTimes, rtol=0.005, atol=0
+								):
+									# the difference in the number of time samples is greater
+									# than 0.5%
+									raise err
+
+								if NTimes > time_size:
+									time_ds[0:time_size] = time_array[...]
+								else:
+									time_ds[...] = time_array[0:NTimes]
 
 					######### END MAIN ACQUISITION LOOP #########
 
 				except KeyboardInterrupt:
 					print('\n______Halted due to Ctrl-C______', '  at', time.ctime())
 
-				# copy the array of time values, corresponding to the last acquired trace, to the times_dataset
-				time_ds[0:NTimes] = scope.time_array()[0:NTimes]      # specify number of points, sometimes scope return extras
+				# copy the array of time values, corresponding to the last acquired
+				# trace, to the times_dataset
+				time_array = scope.time_array()
+				try:
+					time_ds[...] = scope.time_array()[...]
+				except TypeError as err:
+					# the returned signal does not always have exactly NTimes
+					# samples.  It's is off by a few data points.
+					time_size = time_array.size
+					if not numpy.isclose(
+							time_size, NTimes, rtol=0.005, atol=0
+					):
+						# the difference in the number of time samples is greater
+						# than 0.5%
+						raise err
+
+					if NTimes > time_size:
+						time_ds[0:time_size] = time_array[...]
+					else:
+						time_ds[...] = time_array[0:NTimes]
+
 				if type(time_ds) == 'stupid':
 					print(' this is only included to make the linter happy, otherwise it thinks time_ds is not used')
 

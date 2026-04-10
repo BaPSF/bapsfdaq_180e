@@ -210,7 +210,7 @@ class LeCroy_Scope:
 
 		if self.verbose: print('<:> constructing resource manager')
 		t0 = time.time()
-		self.rm = visa.ResourceManager()
+		self.rm = visa.ResourceManager("@py")
 		t1 = time.time()
 		if self.verbose and (t1-t0 > 1): print('    .............................%6.3g sec' % (t1-t0), end='')
 

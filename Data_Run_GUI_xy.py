@@ -10,22 +10,23 @@
 # Author: Yuchen Qian
 # Oct 2017
 #
-19
 
-import numpy
+import datetime
+import h5py
 import math
-import sys
+import numpy
 import os
 import os.path
+import sys
 import time
-import datetime
-from Motor_Control_2D_xy import Motor_Control_2D
+import tkinter
+import tkinter.messagebox
+
+from tkinter import filedialog
+
 from LeCroy_Scope import LeCroy_Scope, WAVEDESC_SIZE
 from LeCroy_Scope import EXPANDED_TRACE_NAMES
-import tkinter
-from tkinter import filedialog
-import tkinter.messagebox
-import h5py as h5py
+from Motor_Control_2D_xy import Motor_Control_2D
 
 dir_path=os.path.dirname(os.path.realpath(__file__))
 version_number="03/01/2018 12:37pm"			# update this when a change has been made
@@ -347,7 +348,7 @@ class Motor_Movement(QGroupBox):
 		except ValueError:
 			QMessageBox.about(self, "Error", "Position should be valid numbers.")
 
-	def disable():
+	def disable(self):
 		self.mc.disable()
 
 	def stop_now(self):
@@ -540,7 +541,7 @@ class Data_Run_Thread(QRunnable):
 		self.hdf5_filename = fn    # save it for later
 		return fn
 
-	def acquire_displayed_traces(self, scope, datasets, hdr_data, pos_ndx):
+	def acquire_displayed_traces(self, scope: LeCroy_Scope, datasets, hdr_data, pos_ndx):
 		""" worker for below :
 			acquire enough sweeps for the averaging, then read displayed scope trace data into HDF5 datasets
 		"""
@@ -553,17 +554,31 @@ class Data_Run_Thread(QRunnable):
 		traces = scope.displayed_traces()
 
 		for tr in traces:
+			NPos, NTimes = datasets[tr].shape
+			signal = scope.acquire(tr)  # type: numpy.ndarray
 			try:
-				NPos,NTimes = datasets[tr].shape
-				datasets[tr][pos_ndx,0:NTimes] = scope.acquire(tr)[0:NTimes]    # sometimes for 10000 the scope hardware returns 10001 samples, so we have to specify [0:NTimes]
-				#?# datasets[tr].flush()
-			except KeyError:
-				print(tr + ' is displayed on the scope but not recorded. To record this channel, please display the trace before starting the data run.')
-				continue
-			except TypeError:
-				print('Not enough points from scope trace')
-				datasets[tr][pos_ndx,:] = scope.acquire(tr)[:]
-				continue
+				datasets[tr][pos_ndx, ...] = signal[...]
+			except KeyError as err:
+				print(
+					tr
+					+ ' is displayed on the scope but not recorded.  '
+					  'To record this channel, please display the trace '
+					  'before starting the data run.'
+					+ err
+				)
+			except TypeError as err:
+				# the returned signal does not always have exactly NTimes
+				# samples.  It's is off by a few data points.
+				signal_NTimes = signal.size
+				if not numpy.isclose(signal_NTimes, NTimes, rtol=0.005, atol=0):
+					# the difference in the number of time samples is greater
+					# than 0.5%
+					raise err
+
+				if NTimes > signal_NTimes:
+					datasets[tr][pos_ndx, 0:signal_NTimes] = signal[...]
+				else:
+					datasets[tr][pos_ndx, ...] = signal[0:NTimes]
 
 		for tr in traces:
 			try:
@@ -571,7 +586,7 @@ class Data_Run_Thread(QRunnable):
 				#?# hdr_data[tr].flush()
 				#?# are there consequences in timing or compression size if we do the flush()s recommend for the SWMR function?
 			except KeyError:
-				continue
+				pass
 
 		scope.set_trigger_mode('NORM')   # resume triggering
 
@@ -676,7 +691,7 @@ class Data_Run_Thread(QRunnable):
 			pos_ds.attrs['shotperpos'] = num_duplicate_shots                                # not legacy
 
 			# create the scope access object, and iterate over positions
-			with LeCroy_Scope(self.ip_addrs['scope'], verbose=False) as scope:
+			with LeCroy_Scope(self.ip_addrs['scope'], verbose=False) as scope:  # type: LeCroy_Scope
 				if not scope:
 					print('Scope not found at '+self.ip_addrs['scope'])      # I think we have raised an exception if this is the case, so we never get here
 					return
@@ -776,16 +791,51 @@ class Data_Run_Thread(QRunnable):
 
 						# at least get one time array recorded for swmr functions
 						if pos[0] == 1:
-							time_ds[0:NTimes] = scope.time_array()[0:NTimes]
-							#time_ds.flush()
+							time_array = scope.time_array()
+							try:
+								time_ds[...] = scope.time_array()[...]
+							except TypeError as err:
+								# the returned signal does not always have exactly NTimes
+								# samples.  It's is off by a few data points.
+								time_size = time_array.size
+								if not numpy.isclose(
+									time_size, NTimes, rtol=0.005, atol=0
+								):
+									# the difference in the number of time samples is greater
+									# than 0.5%
+									raise err
+
+								if NTimes > time_size:
+									time_ds[0:time_size] = time_array[...]
+								else:
+									time_ds[...] = time_array[0:NTimes]
 
 					######### END MAIN ACQUISITION LOOP #########
 
 				except KeyboardInterrupt:
 					print('\n______Halted due to Ctrl-C______', '  at', time.ctime())
 
-				# copy the array of time values, corresponding to the last acquired trace, to the times_dataset
-				time_ds[0:NTimes] = scope.time_array()[0:NTimes]      # specify number of points, sometimes scope return extras
+				# copy the array of time values, corresponding to the last acquired
+				# trace, to the times_dataset
+				time_array = scope.time_array()
+				try:
+					time_ds[...] = scope.time_array()[...]
+				except TypeError as err:
+					# the returned signal does not always have exactly NTimes
+					# samples.  It's is off by a few data points.
+					time_size = time_array.size
+					if not numpy.isclose(
+							time_size, NTimes, rtol=0.005, atol=0
+					):
+						# the difference in the number of time samples is greater
+						# than 0.5%
+						raise err
+
+					if NTimes > time_size:
+						time_ds[0:time_size] = time_array[...]
+					else:
+						time_ds[...] = time_array[0:NTimes]
+
 				if type(time_ds) == 'stupid':
 					print(' this is only included to make the linter happy, otherwise it thinks time_ds is not used')
 
@@ -801,12 +851,9 @@ class Data_Run_Thread(QRunnable):
 						datasets[tr].attrs['recorded']    = True
 						datasets[tr].attrs['shots per position']    = self.pos_param["num_shots"]
 
-
 			f.close()  # close the HDF5 file
 
 			self.signals.finished.emit()
-			#done
-
 
 
 class Test_Shot_Thread(QRunnable):

@@ -32,16 +32,17 @@ NI VISA Manuals:
 
 """
 
-import numpy
-import visa
-from pyvisa.resources import MessageBasedResource
-from pyvisa.errors import VisaIOError
 import collections
+import numpy
+import matplotlib.image as mpimg
+import pylab as plt
+import pyvisa as visa
 import struct
 import sys
-import pylab as plt
-import matplotlib.image as mpimg
 import time
+
+from pyvisa.resources import MessageBasedResource
+from pyvisa.errors import VisaIOError
 
 # the header recorded for each trace
 # 63 entries, 346 bytes
@@ -209,7 +210,7 @@ class LeCroy_Scope:
 
 		if self.verbose: print('<:> constructing resource manager')
 		t0 = time.time()
-		self.rm = visa.ResourceManager()
+		self.rm = visa.ResourceManager("@py")
 		t1 = time.time()
 		if self.verbose and (t1-t0 > 1): print('    .............................%6.3g sec' % (t1-t0), end='')
 
@@ -217,7 +218,10 @@ class LeCroy_Scope:
 
 		# attempt to open a connection to the scope
 		try:
-			self.scope = self.rm.open_resource('VICP::'+ipv4_addr+'::INSTR', resource_pyclass=MessageBasedResource)
+			self.scope = self.rm.open_resource(
+                'VICP::'+ipv4_addr+'::INSTR',
+                resource_pyclass=MessageBasedResource,
+            )
 			print('...ok')
 		except Exception:
 			print('\n**** Scope not found at "', ipv4_addr, '"\n')
@@ -301,7 +305,7 @@ class LeCroy_Scope:
 
 	#-------------------------------------------------------------------------
 
-	def validate_trace(self, tr)  -> str:
+	def validate_trace(self, tr) -> str:
 		""" convenience function, returns canonical trace label, which is broader than a channel label
 			see valid_trace_names defined at top of file
 			if Cn is an integer, assumes we want a channel name
@@ -315,7 +319,6 @@ class LeCroy_Scope:
 		err = '**** validate_trace(): trace name "' + tr + '" is unknown'
 		raise(RuntimeError(err)).with_traceback(sys.exc_info()[2])
 
-	#-------------------------------------------------------------------------
 
 	def max_samples(self, N = 0) -> int:
 		""" mostly used for determining the number of samples the scope expects to acquire.

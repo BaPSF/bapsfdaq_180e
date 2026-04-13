@@ -1,0 +1,9 @@
+h5py
+numpy
+matplotlib
+PyQt5
+pyvisa >= 1.12
+pyvisa-py[vicp, psutil, hislip-discovery, usb-full]
+scipy
+setuptools < 82.0.0
+setuptools-scm

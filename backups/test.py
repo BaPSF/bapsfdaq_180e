@@ -38,7 +38,7 @@ s.close()
 
 return_text = data.decode('ASCII')
 print(' | response is', return_text)
-			#print(' ',type(data), len(data), ' ', end='')
+            #print(' ',type(data), len(data), ' ', end='')
 # pos = float(return_text[5:])
 # print (pos)
 

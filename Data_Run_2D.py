@@ -5,7 +5,7 @@
 # 	2) Set the Lecroy scope IP address and the IP addresses of the motors.
 # 	3) Set the hdf5 filename (if not, a file dialog will pop up)
 # 	4) Set descriptions of the channels being recorded
-
+__all__ = ["get_channel_description", "get_positions", "get_hdf5_filename"]
 
 import math
 import numpy

@@ -192,7 +192,7 @@ class AxisControls(QGroupBox):
         self.setLayout(axisLayout)
 
 
-class Position_Controls(QGroupBox):
+class PositionControls(QGroupBox):
     def __init__(self):
         super().__init__()
         self.setTitle("Set up DAQ position")
@@ -1077,7 +1077,7 @@ class Window(QWidget):
         self.axc.ylowInput.valueChanged.connect(self.axis_change)
 
         # initialize position controls
-        self.pc = Position_Controls()
+        self.pc = PositionControls()
         self.pc.ConfirmButton.clicked.connect(self.update_geometry)
 
         # initialize acquisition controls

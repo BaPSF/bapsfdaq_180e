@@ -172,7 +172,7 @@ class AxisControls(QGroupBox):
 #############################################################################################
 
 
-class Position_Controls(QGroupBox):
+class PositionControls(QGroupBox):
     def __init__(self):
         super().__init__()
         self.setTitle("Set up DAQ position")
@@ -902,7 +902,7 @@ class Window(QWidget):
     def __init__(self):
         super(Window, self).__init__()
 
-        self.pc = Position_Controls()
+        self.pc = PositionControls()
         self.canvas = MyMplCanvas()
         self.ac = Acquisition_Controls()
         self.axc = AxisControls()

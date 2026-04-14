@@ -18,6 +18,12 @@ this function
    Closes the HDF5 file when done
 """
 
+__all__ = [
+    "acquire_displayed_traces",
+    "Acquire_Scope_Data_2D",
+    "create_sourcefile_dataset",
+]
+
 import h5py as h5py
 import numpy
 import os.path

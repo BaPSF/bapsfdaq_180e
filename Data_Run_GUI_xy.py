@@ -130,7 +130,7 @@ class MyMplCanvas(FigureCanvas):
 
 
 
-class Axis_Controls(QGroupBox):
+class AxisControls(QGroupBox):
     def __init__(self):
         super().__init__()
         self.xupInput = QSpinBox()
@@ -905,7 +905,7 @@ class Window(QWidget):
         self.pc = Position_Controls()
         self.canvas = MyMplCanvas()
         self.ac = Acquisition_Controls()
-        self.axc = Axis_Controls()
+        self.axc = AxisControls()
         self.sv = Software_Version()
         self.sc = Scope_Channel()
         self.x_ip = "192.168.0.70"

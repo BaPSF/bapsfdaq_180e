@@ -155,7 +155,7 @@ class MyMplCanvas(FigureCanvas):
         )
 
 
-class Axis_Controls(QGroupBox):
+class AxisControls(QGroupBox):
     def __init__(self):
         super().__init__()
         self.xupInput = QSpinBox()
@@ -1070,7 +1070,7 @@ class Window(QWidget):
         self.test_shot = None  # type: Test_Shot_Thread
 
         # initialize axis controls
-        self.axc = Axis_Controls()
+        self.axc = AxisControls()
         self.axc.xupInput.valueChanged.connect(self.axis_change)
         self.axc.yupInput.valueChanged.connect(self.axis_change)
         self.axc.xlowInput.valueChanged.connect(self.axis_change)

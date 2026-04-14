@@ -240,7 +240,7 @@ class PositionControls(QGroupBox):
         self.setLayout(controlsLayout)
 
 
-class Acquisition_Controls(QGroupBox):
+class AcquisitionControls(QGroupBox):
 
     def __init__(self):
         super().__init__()
@@ -1081,7 +1081,7 @@ class Window(QWidget):
         self.pc.ConfirmButton.clicked.connect(self.update_geometry)
 
         # initialize acquisition controls
-        self.ac = Acquisition_Controls()
+        self.ac = AcquisitionControls()
         self.ac.DataRun.clicked.connect(self.start_data_run)
         self.ac.TestShot.clicked.connect(self.start_test_shot)
         self.ac.Halt.clicked.connect(self.halt_data_run)

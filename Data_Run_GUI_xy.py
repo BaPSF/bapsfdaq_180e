@@ -246,7 +246,7 @@ class PositionControls(QGroupBox):
 ######################################################################################################
 
 
-class Acquisition_Controls(QGroupBox):
+class AcquisitionControls(QGroupBox):
 
     def __init__(self):
         super().__init__()
@@ -904,7 +904,7 @@ class Window(QWidget):
 
         self.pc = PositionControls()
         self.canvas = MyMplCanvas()
-        self.ac = Acquisition_Controls()
+        self.ac = AcquisitionControls()
         self.axc = AxisControls()
         self.sv = Software_Version()
         self.sc = Scope_Channel()

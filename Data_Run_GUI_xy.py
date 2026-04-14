@@ -22,39 +22,47 @@ import time
 import tkinter
 import tkinter.messagebox
 
+from PyQt5.QtCore import pyqtSignal, QObject, QRunnable, QThreadPool, QTimer
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import (
+    QApplication,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QSpinBox,
+    QWidget,
+)
+from scipy.linalg import norm
 from tkinter import filedialog
 
-from LeCroy_Scope import LeCroy_Scope, WAVEDESC_SIZE
-from LeCroy_Scope import EXPANDED_TRACE_NAMES
+from LeCroy_Scope import EXPANDED_TRACE_NAMES, LeCroy_Scope, WAVEDESC_SIZE
 from Motor_Control_2D_xy import Motor_Control_2D
 
-dir_path=os.path.dirname(os.path.realpath(__file__))
-version_number="03/01/2018 12:37pm"			# update this when a change has been made
+# noqa
+# the matplotlib backend imports must happen after import matplotlib and
+# PySide6 (or any Qt bindings)
+import matplotlib as mpl  # noqa
+import matplotlib.figure  # noqa
+import matplotlib.patches  # noqa
+mpl.use("qtagg")  # matplotlib's backend for Qt bindings
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas  # noqa
+from mpl_toolkits.mplot3d import axes3d  # noqa
 
-from PyQt5 import QtCore
-# from PyQt5.QtWidgets import (QApplication, QBoxLayout, QCheckBox, QComboBox,
-# 		 QDial, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QScrollBar,
-# 		 QSlider, QSpinBox, QStackedWidget, QWidget, QLineEdit, QPushButton, QSizePolicy, QMessageBox)
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
 
-from mpl_toolkits.mplot3d import axes3d
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.patches as patches
-from scipy.linalg import norm
-
+dir_path = os.path.dirname(os.path.realpath(__file__))
+version_number = "03/01/2018 12:37pm"			# update this when a change has been made
 data_running = False
-#############################################################################################
-#############################################################################################
 
 
 class MyMplCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
     def __init__(self, parent=None, width=6, height=3, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
+        fig = mpl.figure.Figure(figsize=(width, height), dpi=dpi)
         self.ax = fig.add_subplot(111)
         self.ax.set_xlim(-25, 25)
         self.ax.set_ylim(-25, 25)
@@ -68,7 +76,7 @@ class MyMplCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
         self.ax.grid(which = 'both')
-        self.ax.add_patch(patches.Rectangle((-38, -50), 76, 100, fill = False, edgecolor = 'red'))
+        self.ax.add_patch(mpl.patches.Rectangle((-38, -50), 76, 100, fill = False, edgecolor = 'red'))
 
         self.matrix = self.ax.scatter(0, 0, 0, color = 'blue', marker = 'o')
         self.point = self.ax.scatter(0, 0, 0, color = 'red', marker = '*')
@@ -943,17 +951,9 @@ class Window(QWidget):
         self.threadpool = QThreadPool()
 
         # Set timer to update current probe position and instant motor velocity
-        self.timer = QtCore.QTimer(self)
+        self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_current_position)
         self.timer.start(500)
-
-    # def update_timer(self):
-    # 	if data_running == False:
-    # 		self.timer = QtCore.QTimer(self)
-    # 		self.timer.timeout.connect(self.update_current_position)
-    # 		self.timer.start(500)
-    # 	else:
-    # 		pass
 
     def axis_change(self):
         xup = self.axc.xupInput.value()
@@ -961,7 +961,6 @@ class Window(QWidget):
         xlow = self.axc.xlowInput.value()
         ylow = self.axc.ylowInput.value()
         self.canvas.update_axis(xup,yup,xlow,ylow)
-
 
     def update_current_position(self):
         if data_running == False:
@@ -972,7 +971,6 @@ class Window(QWidget):
 
         else:
             pass
-
 
     def update_current_position_during_data_run(self, xnow, ynow):
         if data_running == True:

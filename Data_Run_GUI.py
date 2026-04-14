@@ -11,49 +11,59 @@
 # Oct 2017
 #
 
-import numpy
+import datetime
+import h5py as h5py
 import math
-import sys
+import numpy
 import os
 import os.path
+import sys
 import time
-import datetime
-from Motor_Control_2D import Motor_Control_2D
-from LeCroy_Scope import LeCroy_Scope, WAVEDESC_SIZE
-from LeCroy_Scope import EXPANDED_TRACE_NAMES
 import tkinter
-from tkinter import filedialog
 import tkinter.messagebox
-import h5py as h5py
 
-dir_path=os.path.dirname(os.path.realpath(__file__))
-version_number="02/24/2018 1:33pm"			# update this when a change has been made
-
-from PyQt5 import QtCore
-# from PyQt5.QtWidgets import (QApplication, QBoxLayout, QCheckBox, QComboBox,
-# 		 QDial, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QScrollBar,
-# 		 QSlider, QSpinBox, QStackedWidget, QWidget, QLineEdit, QPushButton, QSizePolicy, QMessageBox)
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-
-from mpl_toolkits.mplot3d import axes3d
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.patches as patches
+from PyQt5.QtCore import pyqtSignal, QObject, QRunnable, QThreadPool, QTimer
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtWidgets import (
+    QApplication,
+    QGridLayout,
+    QGroupBox,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QSpinBox,
+    QTabWidget,
+    QWidget,
+)
 from scipy.linalg import norm
+from tkinter import filedialog
 
+from LeCroy_Scope import EXPANDED_TRACE_NAMES, LeCroy_Scope, WAVEDESC_SIZE
+from Motor_Control_2D import Motor_Control_2D
+
+# noqa
+# the matplotlib backend imports must happen after import matplotlib and
+# PySide6 (or any Qt bindings)
+import matplotlib as mpl  # noqa
+import matplotlib.figure  # noqa
+import matplotlib.patches  # noqa
+mpl.use("qtagg")  # matplotlib's backend for Qt bindings
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas  # noqa
+from mpl_toolkits.mplot3d import axes3d  # noqa
+
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+version_number = "02/24/2018 1:33pm"  # update this when a change has been made
 data_running = False
-
-#############################################################################################
-#############################################################################################
 
 
 class MyMplCanvas(FigureCanvas):
     """Ultimately, this is a QWidget (as well as a FigureCanvasAgg, etc.)."""
 
     def __init__(self, parent=None, width=6, height=3, dpi=100):
-        fig = Figure(figsize=(width, height), dpi=dpi)
+        fig = mpl.figure.Figure(figsize=(width, height), dpi=dpi)
         self.ax = fig.add_subplot(111)
         self.ax.set_xlim(-35, 35)
         self.ax.set_ylim(-35, 35)
@@ -67,7 +77,7 @@ class MyMplCanvas(FigureCanvas):
         FigureCanvas.updateGeometry(self)
 
         self.ax.grid(which = 'both')
-        self.ax.add_patch(patches.Rectangle((-38, -50), 76, 100, fill = False, edgecolor = 'red'))
+        self.ax.add_patch(mpl.patches.Rectangle((-38, -50), 76, 100, fill = False, edgecolor = 'red'))
 
         self.matrix = self.ax.scatter(0, 0, 0, color = 'blue', marker = 'o')
         self.point = self.ax.scatter(0, 0, 0, color = 'red', marker = '*')
@@ -272,7 +282,7 @@ class Wait_For_Motion_Complete_Thread(QRunnable):
         timeout = time.time() + 300
         print('starting the movement thraead')
 
-        while True :
+        while True:
             try:
                 time.sleep(0.2)
                 x_stat, y_stat = self.mc.check_status()
@@ -1031,18 +1041,9 @@ class Window(QWidget):
         self.threadpool = QThreadPool()
 
         # Set timer to update current probe position and instant motor velocity
-        self.timer = QtCore.QTimer(self)
+        self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_current_position)
         self.timer.start(2000)
-
-
-    # def update_timer(self):
-    # 	if data_running == False:
-    # 		self.timer = QtCore.QTimer(self)
-    # 		self.timer.timeout.connect(self.update_current_position)
-    # 		self.timer.start(500)
-    # 	else:
-    # 		pass
 
     def axis_change(self):
         xup = self.axc.xupInput.value()
@@ -1050,7 +1051,6 @@ class Window(QWidget):
         xlow = self.axc.xlowInput.value()
         ylow = self.axc.ylowInput.value()
         self.canvas.update_axis(xup,yup,xlow,ylow)
-
 
     def update_current_position(self):
         if data_running == False:

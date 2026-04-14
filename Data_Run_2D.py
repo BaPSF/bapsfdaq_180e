@@ -8,13 +8,14 @@
 # 	4) Set descriptions of the channels being recorded
 
 
-import numpy
 import math
-from Acquire_Scope_Data_2D import Acquire_Scope_Data_2D
-from LeCroy_Scope import EXPANDED_TRACE_NAMES
+import numpy
 import tkinter
+
 from tkinter import filedialog
 
+from Acquire_Scope_Data_2D import Acquire_Scope_Data_2D
+from LeCroy_Scope import EXPANDED_TRACE_NAMES
 
 ###############################################################################
 

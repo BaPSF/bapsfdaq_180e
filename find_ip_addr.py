@@ -15,7 +15,9 @@ Created on Sep 1(?)
 @author: Patrick
 """
 import sys
-if sys.version_info[0] < 3: raise RuntimeError('This script should be run under Python 3')
+
+if sys.version_info[0] < 3:
+    raise RuntimeError('This script should be run under Python 3')
 
 import os
 import socket
@@ -29,6 +31,7 @@ class find_ip_addr_error(Exception):
     pass
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 
 def my_ip_addr() -> str:
     """ worker for below: used to determine the 24 bit subnet address of our local lan"""

@@ -7,13 +7,16 @@ Wave generator control
 #client
 
 import sys
-if sys.version_info[0] < 3: raise RuntimeError('This script should be run under Python 3')
 
-import socket
+if sys.version_info[0] < 3:
+    raise RuntimeError('This script should be run under Python 3')
+
 import numpy
+import socket
 import time
 
 from find_ip_addr import find_ip_addr
+
 
 class wavegen_control:
     MSIPA_CACHE_FN = 'wavegen_server_ip_address_cache.tmp'

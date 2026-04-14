@@ -7,10 +7,10 @@ Oct 2017
 '''
 
 import math
-from Single_Motor_Control import Motor_Control
-import time
 import numpy
+import time
 
+from Single_Motor_Control import Motor_Control
 
 #############################################################################################
 #############################################################################################

@@ -19,17 +19,15 @@
     Closes the HDF5 file when done
 """
 
-import numpy
 import h5py as h5py
-import time
+import numpy
 import os.path
 import sys
+import time
 
 from LeCroy_Scope import LeCroy_Scope, WAVEDESC_SIZE
 from Motor_Control_2D import Motor_Control_2D
-#from wavegen_control import wavegen_control
 
-#----------------------------------------------------------------------------------------
 
 def acquire_displayed_traces(scope, datasets, hdr_data, pos_ndx):
     """ worker for below :

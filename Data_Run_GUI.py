@@ -417,7 +417,7 @@ class MotorMovement(QGroupBox):
         self.mc.set_input_usage(usage)
 
 
-class Admin_Tab(QGroupBox):
+class AdminTab(QGroupBox):
     def __init__(self, mc: Motor_Control_2D):
         super().__init__()
         self.setTitle("Admin Tab")
@@ -1061,7 +1061,7 @@ class Window(QWidget):
         self.mm = MotorMovement(self.mc)
         self.mm.set_input_usage(2)
         self.threadpool = QThreadPool()
-        self.at = Admin_Tab(self.mc)
+        self.at = AdminTab(self.mc)
         self.xnow = None  # type: Union[None, float]
         self.ynow = None  # type: Union[None, float]
         self._parameters = None  # type: dict

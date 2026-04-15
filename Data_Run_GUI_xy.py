@@ -434,7 +434,7 @@ update_pos = None
 #############################################################################################
 #############################################################################################
 
-class Software_Version(QGroupBox):
+class SoftwareVersion(QGroupBox):
     def __init__(self):
         super().__init__()
         self.mod_timestr=(os.path.getmtime(dir_path))
@@ -906,7 +906,7 @@ class Window(QWidget):
         self.canvas = MyMplCanvas()
         self.ac = AcquisitionControls()
         self.axc = AxisControls()
-        self.sv = Software_Version()
+        self.sv = SoftwareVersion()
         self.sc = ScopeChannel()
         self.x_ip = "192.168.0.70"
         self.y_ip = "192.168.0.80"

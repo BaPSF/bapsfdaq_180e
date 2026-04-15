@@ -264,10 +264,10 @@ class AcquisitionControls(QGroupBox):
         self.setLayout(ACLayout)
 
 
-class Wait_For_Motion_Complete_Thread(QRunnable):
+class WaitForMotionCompleteThread(QRunnable):
 
     def __init__(self, mc):
-        super(Wait_For_Motion_Complete_Thread, self).__init__()
+        super(WaitForMotionCompleteThread, self).__init__()
 
         self.signals = Signals()
         self.mc = mc
@@ -312,7 +312,7 @@ class MotorMovement(QGroupBox):
         self.motor_moving = False
         self.wait_for_motion_complete = (
             None
-        )  # type: Union[Wait_For_Motion_Complete_Thread, None]
+        )  # type: Union[WaitForMotionCompleteThread, None]
         self.last_pos = 0.0
         self.speedx = None  # type: Union[None, float]
         self.speedy = None  # type: Union[None, float]
@@ -361,7 +361,7 @@ class MotorMovement(QGroupBox):
             y_pos = float(self.yMoveInput.text())
             self.motor_moving = True
             self.mc.move_to_position(x_pos, y_pos)
-            self.wait_for_motion_complete = Wait_For_Motion_Complete_Thread(self.mc)
+            self.wait_for_motion_complete = WaitForMotionCompleteThread(self.mc)
             self.wait_for_motion_complete.signals.motor_move.connect(
                 self.change_movement_status
             )

@@ -1006,10 +1006,10 @@ class Data_Run_Thread(QRunnable):
         self.threadactive = False
 
 
-class Test_Shot_Thread(QRunnable):
+class TestShotThread(QRunnable):
 
     def __init__(self, ip_addrs):
-        super(Test_Shot_Thread, self).__init__()
+        super(TestShotThread, self).__init__()
         self.signals = Signals()
         self.ip_addrs = ip_addrs
 
@@ -1067,7 +1067,7 @@ class Window(QWidget):
         self._parameters = None  # type: dict
         self.update = True
         self.data_run = None  # type: Data_Run_Thread
-        self.test_shot = None  # type: Test_Shot_Thread
+        self.test_shot = None  # type: TestShotThread
 
         # initialize axis controls
         self.axc = AxisControls()
@@ -1269,7 +1269,7 @@ class Window(QWidget):
         self.at.setEnabled(status)
 
     def start_test_shot(self):
-        self.test_shot = Test_Shot_Thread(ip_addrs={"scope": self.scope_ip})
+        self.test_shot = TestShotThread(ip_addrs={"scope": self.scope_ip})
         self.test_shot.signals.finished.connect(self.test_shot_finished)
         self.test_shot.signals.new_screen_dump.connect(self.update_screen_dump)
         self.threadpool.start(self.test_shot)

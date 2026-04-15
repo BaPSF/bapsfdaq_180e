@@ -864,10 +864,10 @@ class Data_Run_Thread(QRunnable):
             self.signals.finished.emit()
 
 
-class Test_Shot_Thread(QRunnable):
+class TestShotThread(QRunnable):
 
     def __init__(self, ip_addrs):
-        super(Test_Shot_Thread, self).__init__()
+        super(TestShotThread, self).__init__()
         self.signals = Signals()
         self.ip_addrs = ip_addrs
 
@@ -1108,7 +1108,7 @@ class Window(QWidget):
     def start_test_shot(self):
         self.ip_addrs = {}
         self.ip_addrs['scope'] = self.scope_ip
-        self.test_shot = Test_Shot_Thread(self.ip_addrs)
+        self.test_shot = TestShotThread(self.ip_addrs)
         self.test_shot.signals.finished.connect(self.test_shot_finished)
         self.test_shot.signals.new_screen_dump.connect(self.update_screen_dump)
         self.threadpool.start(self.test_shot)

@@ -402,7 +402,7 @@ class MotorMovement(QGroupBox):
 #############################################################################################
 
 
-class Scope_Channel(QGroupBox):
+class ScopeChannel(QGroupBox):
     def __init__(self):
         super().__init__()
         self.titleLabel = QLabel("Enter channel descriptions")
@@ -907,7 +907,7 @@ class Window(QWidget):
         self.ac = AcquisitionControls()
         self.axc = AxisControls()
         self.sv = Software_Version()
-        self.sc = Scope_Channel()
+        self.sc = ScopeChannel()
         self.x_ip = "192.168.0.70"
         self.y_ip = "192.168.0.80"
         self.scope_ip = "192.168.0.60"

@@ -502,7 +502,7 @@ class Admin_Tab(QGroupBox):
         self.mc.clear_alarm()
 
 
-class Scope_Channel(QGroupBox):
+class ScopeChannel(QGroupBox):
     def __init__(self):
         super().__init__()
         self.titleLabel = QLabel("Enter channel descriptions")
@@ -1052,7 +1052,7 @@ class Window(QWidget):
         # Initialize some attributes
         self.canvas = MyMplCanvas()
         self.sv = Software_Version()
-        self.sc = Scope_Channel()
+        self.sc = ScopeChannel()
         self.x_ip = "192.168.0.50"
         self.y_ip = "192.168.0.40"
         self.scope_ip = "192.168.0.61"

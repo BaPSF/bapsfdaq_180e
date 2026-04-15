@@ -458,10 +458,10 @@ class Signals(QObject):
     finished_position = pyqtSignal(float, float)
     cancel = pyqtSignal()
 
-class Data_Run_Thread(QRunnable):
+class DataRunThread(QRunnable):
 
     def __init__(self, hdf5_filename, pos_param, channel_description, ip_addrs):
-        super(Data_Run_Thread, self).__init__()
+        super(DataRunThread, self).__init__()
 
         self.hdf5_filename = hdf5_filename
         self.pos_param = pos_param
@@ -1050,7 +1050,7 @@ class Window(QWidget):
         self.ip_addrs['y'] = self.y_ip
         self.ip_addrs['scope'] = self.scope_ip
 
-        self.data_run = Data_Run_Thread(self.hdf5_filename, self.pos_param, self.channel_description, self.ip_addrs)
+        self.data_run = DataRunThread(self.hdf5_filename, self.pos_param, self.channel_description, self.ip_addrs)
         self.freeze_all_controls()
         self.data_run.signals.finished.connect(self.data_run_finished)
         self.data_run.signals.cancel.connect(self.acquisition_canceled)

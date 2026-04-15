@@ -555,10 +555,10 @@ class Signals(QObject):
     motor_move = pyqtSignal(bool)
 
 
-class Data_Run_Thread(QRunnable):
+class DataRunThread(QRunnable):
 
     def __init__(self, hdf5_filename, pos_param, channel_description, ip_addrs):
-        super(Data_Run_Thread, self).__init__()
+        super(DataRunThread, self).__init__()
 
         self.hdf5_filename = hdf5_filename
         self.pos_param = pos_param
@@ -1066,7 +1066,7 @@ class Window(QWidget):
         self.ynow = None  # type: Union[None, float]
         self._parameters = None  # type: dict
         self.update = True
-        self.data_run = None  # type: Data_Run_Thread
+        self.data_run = None  # type: DataRunThread
         self.test_shot = None  # type: TestShotThread
 
         # initialize axis controls
@@ -1213,7 +1213,7 @@ class Window(QWidget):
             "scope": self.scope_ip,
         }
 
-        self.data_run = Data_Run_Thread(
+        self.data_run = DataRunThread(
             hdf5_filename=None,
             pos_param=pos_param,
             channel_description=channel_description,

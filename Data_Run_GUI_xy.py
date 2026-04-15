@@ -277,7 +277,7 @@ class AcquisitionControls(QGroupBox):
 ######################################################################################################
 
 
-class Motor_Movement(QGroupBox):
+class MotorMovement(QGroupBox):
 
     def __init__(self, x_ip_addr = None, y_ip_addr = None, MOTOR_PORT = None):
         super().__init__()
@@ -913,7 +913,7 @@ class Window(QWidget):
         self.scope_ip = "192.168.0.60"
         #self.scope_ip = "192.168.7.26"
         self.port_ip = int(7776)
-        self.mm = Motor_Movement(x_ip_addr = self.x_ip, y_ip_addr = self.y_ip, MOTOR_PORT = self.port_ip)
+        self.mm = MotorMovement(x_ip_addr = self.x_ip, y_ip_addr = self.y_ip, MOTOR_PORT = self.port_ip)
         self.mm.set_input_usage(3)
         self.mm.set_steps_per_rev(20000, 20000)
 

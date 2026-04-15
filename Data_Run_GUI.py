@@ -302,7 +302,7 @@ class Wait_For_Motion_Complete_Thread(QRunnable):
         self.signals.motor_move.emit(False)
 
 
-class Motor_Movement(QGroupBox):
+class MotorMovement(QGroupBox):
 
     def __init__(self, mc: Motor_Control_2D):
         super().__init__()
@@ -1058,7 +1058,7 @@ class Window(QWidget):
         self.scope_ip = "192.168.0.61"
         self.port_ip = int(7776)
         self.mc = Motor_Control_2D(x_ip_addr=self.x_ip, y_ip_addr=self.y_ip)
-        self.mm = Motor_Movement(self.mc)
+        self.mm = MotorMovement(self.mc)
         self.mm.set_input_usage(2)
         self.threadpool = QThreadPool()
         self.at = Admin_Tab(self.mc)

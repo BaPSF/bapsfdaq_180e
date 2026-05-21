@@ -1181,11 +1181,10 @@ class Window(QWidget):
             self.update = False
 
     def update_geometry(self):
-        params = self.update_parameters()
-
         if not self.update:
             return
 
+        params = self.update_parameters()
         self.canvas.matrix.remove()
         self.canvas.update_figure(params)
 

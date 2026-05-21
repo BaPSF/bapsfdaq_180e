@@ -38,7 +38,7 @@ from scipy.linalg import norm
 from tkinter import filedialog
 from typing import Any, Dict, Tuple, Union
 
-from LeCroy_Scope import EXPANDED_TRACE_NAMES, LeCroy_Scope, WAVEDESC_SIZE
+from lab_scopes.lecroy import EXPANDED_TRACE_NAMES, WAVEDESC_SIZE, LeCroyScope
 from Motor_Control_2D_xy import Motor_Control_2D
 
 # noqa
@@ -546,7 +546,7 @@ class DataRunThread(QRunnable):
         self.hdf5_filename = fn
         return fn
 
-    def acquire_displayed_traces(self, scope: LeCroy_Scope, datasets, hdr_data, pos_ndx):
+    def acquire_displayed_traces(self, scope: LeCroyScope, datasets, hdr_data, pos_ndx):
         """
         Acquire enough sweeps for the averaging, then read displayed
         scope trace data into HDF5 datasets.
@@ -703,9 +703,9 @@ class DataRunThread(QRunnable):
             pos_ds.attrs["shotperpos"] = num_duplicate_shots
 
             # create the scope access object, and iterate over positions
-            with LeCroy_Scope(
+            with LeCroyScope(
                 self.ip_addrs["scope"], verbose=False
-            ) as scope:  # type: LeCroy_Scope
+            ) as scope:  # type: LeCroyScope
                 if not scope:
                     # I think we have raised an exception if this is the
                     # case, so we never get here
@@ -927,7 +927,7 @@ class TestShotThread(QRunnable):
         scope.set_trigger_mode("NORM")  # resume triggering
 
     def run(self):
-        with LeCroy_Scope(self.ip_addrs["scope"], verbose=False) as scope:
+        with LeCroyScope(self.ip_addrs["scope"], verbose=False) as scope:
             if not scope:
                 # I think we have raised an exception if this is the
                 # case, so we never get here
